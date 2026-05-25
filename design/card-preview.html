@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FVD — Vista previa tarjetas</title>
+    <link rel="icon" href="../img/logonvofvd.ico" type="image/x-icon">
+    <link rel="stylesheet" href="../dist/assets/css/main.css">
+</head>
+<body class="admin-fvd-panel admin-fvd-panel--ag">
+    <header class="main-header">
+        <div class="brand-container">
+            <img src="../img/fvd-login-oficial.png" alt="FVD" class="main-logo">
+        </div>
+    </header>
+    <main class="admin-panel" style="max-width: 1200px; margin: 0 auto; padding: 1rem;">
+        <h1 style="color: var(--fvd-azul-profundo); font-size: 1.15rem;">Vista previa — componente <code>fvd-card</code></h1>
+        <p class="ag-muted" style="max-width: 65ch; margin-bottom: 1rem;">
+            Compare el diseño nuevo (pasteles + degradado) con el panel actual. Si aprueba, se replica a Servicios, Operaciones, Finanzas y Admin Asoc.
+        </p>
+
+        <h2 class="ag-subtitle">Nuevo (FvdCard)</h2>
+        <div id="preview-new" class="admin-app-admingral"></div>
+
+        <h2 class="ag-subtitle" style="margin-top: 1.5rem;">Referencia actual (agdash)</h2>
+        <div class="admin-app-admingral">
+            <div class="agdash-grid" style="max-width: 900px;">
+                <section class="agdash-col agdash-col--supervision">
+                    <h2 class="agdash-col-h">Supervisión (legacy)</h2>
+                    <div class="agdash-items">
+                        <button type="button" class="agdash-item agdash-item--sup2"><span class="agdash-item-label">Afiliaciones</span><span class="agdash-item-ic">✚</span></button>
+                        <button type="button" class="agdash-item agdash-item--sup3"><span class="agdash-item-label">Carnets</span><span class="agdash-item-ic">▭</span></button>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <h2 class="ag-subtitle" style="margin-top: 1.5rem;">Botones de acción corporativos</h2>
+        <p>
+            <button type="button" class="btn-primary fvd-btn--confirm">Confirmar</button>
+            <button type="button" class="btn-secondary fvd-btn--edit">Editar</button>
+            <button type="button" class="btn-secondary fvd-btn--pending">Pendiente</button>
+            <button type="button" class="btn-secondary fvd-btn--danger">Cancelar</button>
+        </p>
+    </main>
+    <script type="module">
+        import { htmlFvdCardGrid } from '../src/js/fvd_card.js';
+
+        document.getElementById('preview-new').innerHTML = htmlFvdCardGrid([
+            {
+                tone: 'servicios',
+                title: 'Servicios',
+                items: [
+                    { label: 'Mi organización', icon: '⌂', accent: 'svc', attrs: {} },
+                    { label: 'Asociaciones', icon: '▣', accent: 'svc2', attrs: {} },
+                ],
+            },
+            {
+                tone: 'supervision',
+                title: 'Supervisión',
+                items: [
+                    { label: 'Todas', icon: '☰', accent: 'sup1', attrs: {} },
+                    { label: 'Afiliaciones', icon: '✚', accent: 'sup2', attrs: {} },
+                    { label: 'Carnets', icon: '▭', accent: 'sup3', attrs: {} },
+                ],
+            },
+            {
+                tone: 'operaciones',
+                title: 'Operaciones',
+                items: [{ label: 'Torneos', icon: '🏆', accent: 'op1', attrs: {} }],
+            },
+            {
+                tone: 'finanzas',
+                title: 'Finanzas',
+                items: [{ label: 'Estado de cuentas', icon: '€', accent: 'fn1', attrs: {} }],
+            },
+        ]);
+    </script>
+</body>
+</html>

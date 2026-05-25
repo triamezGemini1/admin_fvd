@@ -1,0 +1,36 @@
+# Entorno local / credenciales
+.env
+.env.local
+.env.*.local
+datosinfo/*.sql
+datosinfo/database_config.php
+ACCESO_ADMIN.txt
+
+# Dependencias
+/vendor/
+/node_modules/
+
+# Build / caché
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# IDE / editor
+.idea/
+*.swp
+*.swo
+*~
+
+# Cursor (opcional: quitar si quieren versionar reglas del equipo)
+# .cursor/
+
+# Subidas de usuarios (mantener estructura con .gitkeep)
+/uploads/**
+!/uploads/**/
+!/uploads/**/.gitkeep
+
+# Backups y dumps fuera de sql/migrations
+*.bak
+*.tmp
+backup/

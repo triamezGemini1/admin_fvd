@@ -1,0 +1,7 @@
+-- FVD — Pagos del panel de finanzas en `relacion_pagos`
+-- La tabla `relacion_pagos` ya forma parte del esquema maestro (torneo, asociación, tasa, moneda, montos, referencia, banco, observaciones).
+-- Convención de la aplicación: `torneo_id = 0` = pago contable FVD asociado a cargos `finanza_cargo` (no a un torneo concreto).
+-- Los nuevos registros desde el panel se insertan ahí (clase FinanzaFvd).
+--
+-- Si tiene datos antiguos en `finanza_pago`, cópielos una sola vez con:
+--   php tools/migrate_finanza_pago_a_relacion_pagos.php

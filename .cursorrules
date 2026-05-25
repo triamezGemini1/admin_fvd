@@ -1,0 +1,40 @@
+# FVD PORTAL - REGLAS DE DESARROLLO (MÁXIMA CATEGORÍA)
+
+## 1. STACK TECNOLÓGICO Y FILOSOFÍA
+- Backend: PHP 8.2+ puro (Prohibido el uso de Frameworks como Laravel o Symfony).
+- Base de Datos: MySQL mediante la extensión PDO (Uso obligatorio de Prepared Statements).
+- Frontend: HTML5 semántico y Vanilla JavaScript (ES6+). Prohibido jQuery o React/Vue.
+- Estilos: Sass (SCSS). Diseño fluido optimizado para 13" (1366x768 o 1440x900) sin scroll horizontal.
+
+## 2. ARQUITECTURA DE CÓDIGO (CLEAN CODE)
+- SEPARACIÓN TOTAL: Prohibido escribir código PHP dentro de archivos HTML o viceversa.
+- LÓGICA DE NEGOCIO: Toda la lógica (validaciones de edad, categorías mixtas, cálculos financieros) debe vivir en Clases PHP dentro de `/app`.
+- COMUNICACIÓN: El Frontend se comunica con el Backend ÚNICAMENTE mediante Fetch API a la carpeta `/api`, la cual devuelve JSON.
+- REUTILIZACIÓN (DRY): Cualquier función usada en más de un módulo debe ser un Helper o un Método de Clase.
+
+## 3. UI/UX Y MARCA
+- Logo FVD: Debe destacar en el Header y Login.
+- Logos Aliados: Ubicados en el Footer o área secundaria con jerarquía visual menor (escala de grises u opacidad).
+- Panel de Delegados: Layout de 3 columnas fijas (Disponibles | Área de Trabajo | Inscritos).
+- **Tokens de color (base de verdad):** `tailwind.config.js` → `theme.extend.colors.fvd` y variables CSS `:root` (`--fvd-primary`, `--fvd-secondary`, `--fvd-background`, `--fvd-surface`). No usar hex sueltos en JS/HTML nuevos.
+- **Tablas (14"):** envolver con `htmlFvdTableShell()` (`reporte_tabla.js`) o clase `.fvd-table-shell` + `.fvd-table`. Scroll interno `max-height: 70vh`, cabecera `position: sticky`. Evitar `overflow: hidden` en ancestros de la tabla.
+
+## 4. SEGURIDAD
+- Contraseñas: Siempre usar `password_hash()` y `password_verify()`.
+- Sesiones: Control de acceso por roles (admingral, delegado, usuario).
+
+# Reglas de Desarrollo FVD Master Admin
+- UI/UX: Mantener diseño "No-Scroll" en 14 pulgadas. Tablas siempre con sticky headers (`.fvd-table-shell`).
+- Estilo: Tokens `fvd-*` en `tailwind.config.js` y `main.css`; clases utilitarias Tailwind opcionales (`bg-fvd-primary`, `max-h-fvd-table`). Sin estilos inline ni hex hardcoded en código nuevo.
+- Finanzas: Toda operación de cálculo debe ser validada contra los registros base. No usar promedios aproximados.
+- Código: PHP 8.2+. Asegurar sanitización de entradas en consultas SQL para evitar errores de cálculo.
+- Organización: Cada componente debe ser modular.
+
+# Reglas de Estilo e Identidad - FVD (Federación Venezolana de Dominó)
+- Identidad Obligatoria: Toda página, módulo (Admin Gral, Admin Asoc) y componente debe seguir el branding de la FVD.
+- Paleta de Colores:
+    - Tarjetas (Cards): Título con fondo de color pastel suave (ej: #E3F2FD, #F3E5F5).
+    - Degradados: Aplicar un degradado progresivo (linear-gradient) de arriba a abajo en los encabezados de las tarjetas.
+    - Botones: Usar colores corporativos asociados a la acción del botón (ej: verde para confirmar, azul para editar, naranja para acciones pendientes, rojo para cancelar/eliminar).
+- Layout: Diseño optimizado para pantallas de 14 pulgadas. Eliminar scroll vertical excesivo; priorizar el uso de Grid/Flexbox para tablas densas.
+- Consistencia: Mantener todas las funcionalidades actuales (lógica de torneo, gestión de atletas, rankings). Solo realizar cambios visuales y de identidad.

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FVD — Crear torneo</title>
+    <link rel="icon" href="img/logonvofvd.ico" type="image/x-icon">
+    <link rel="stylesheet" href="dist/assets/css/main.css">
+</head>
+<body class="torneo-alta-body">
+    <header class="main-header">
+        <div class="brand-container">
+            <a href="index.php"><img src="img/fvd-login-oficial.png" alt="Federación Venezolana de Dominó" class="main-logo"></a>
+        </div>
+        <nav id="main-nav" class="main-nav-actions">
+            <a href="index.php" class="btn-secondary" style="font-size: 0.85rem; padding: 0.45rem 0.9rem;">Inicio</a>
+            <a href="panel.html" class="btn-secondary" style="font-size: 0.85rem; padding: 0.45rem 0.9rem;">Administración</a>
+        </nav>
+    </header>
+
+    <main id="app-container" class="torneo-alta-main">
+        <div id="crear-torneo-loading" class="torneo-alta-state">
+            <p class="torneo-alta-loading-text">Comprobando permisos…</p>
+        </div>
+        <div id="crear-torneo-denied" class="torneo-alta-state torneo-alta-state--denied is-hidden">
+            <p class="torneo-alta-denied-text">No tiene permiso para crear torneos o debe iniciar sesión.</p>
+            <p class="torneo-alta-denied-actions">
+                <a href="index.php" class="torneo-alta-btn torneo-alta-btn--secondary">Volver al inicio</a>
+            </p>
+        </div>
+        <div id="crear-torneo-allowed" class="torneo-alta-state is-hidden">
+            <div class="torneo-alta-card">
+                <h1 class="torneo-alta-title">Crear torneo</h1>
+                <p class="torneo-alta-lead">Registro bajo la organización rectora FVD. Invitación y afiche opcionales.</p>
+
+                <form id="form-crear-torneo" class="torneo-alta-form" enctype="multipart/form-data" novalidate>
+                    <div class="torneo-alta-grid">
+                        <label class="torneo-alta-field torneo-alta-field--full">
+                            <span>Tipo de registro *</span>
+                            <select name="modo_registro" id="tor-modo-registro" required>
+                                <option value="simple">Torneo único</option>
+                                <option value="campeonato_genero">Campeonato por género (Masculino + Femenino)</option>
+                                <option value="campeonato_categoria">Campeonato por categoría (Sub 12, 15 y 18)</option>
+                            </select>
+                            <p id="tor-camp-hint" class="torneo-alta-hint"></p>
+                        </label>
+                        <label class="torneo-alta-field">
+                            <span>Nombre del torneo *</span>
+                            <input type="text" name="nombre" required maxlength="255" placeholder="Ej. Campeonato Nacional 2026" autocomplete="off">
+                        </label>
+                        <label class="torneo-alta-field">
+                            <span>Lugar</span>
+                            <input type="text" name="lugar" maxlength="255" placeholder="Salón / ciudad">
+                        </label>
+                        <label class="torneo-alta-field">
+                            <span>Fecha del torneo</span>
+                            <input type="date" name="fechator">
+                        </label>
+                        <label class="torneo-alta-field">
+                            <span>Costo (Bs.)</span>
+                            <input type="number" name="costotor" min="0" step="0.01" placeholder="0">
+                        </label>
+                        <label class="torneo-alta-field">
+                            <span>Tipo</span>
+                            <select name="tipo">
+                                <option value="">—</option>
+                                <option value="1">Masculino</option>
+                                <option value="2">Femenino</option>
+                                <option value="3">Mixto</option>
+                            </select>
+                        </label>
+                        <label class="torneo-alta-field">
+                            <span>Clase</span>
+                            <select name="clase">
+                                <option value="">—</option>
+                                <option value="1">Individual</option>
+                                <option value="2">Parejas</option>
+                                <option value="3">Equipos</option>
+                            </select>
+                        </label>
+                        <div class="torneo-alta-kpi-row" aria-label="Parámetros de partida en una línea">
+                            <label class="torneo-alta-field torneo-alta-field--kpi">
+                                <span>Tiempo</span>
+                                <input type="number" name="tiempo" value="35" min="1" max="180" step="1" title="Minutos">
+                            </label>
+                            <label class="torneo-alta-field torneo-alta-field--kpi">
+                                <span>Puntos</span>
+                                <input type="number" name="puntos" value="200" min="1" max="9999" step="1">
+                            </label>
+                            <label class="torneo-alta-field torneo-alta-field--kpi">
+                                <span>Rondas</span>
+                                <input type="number" name="rondas" value="9" min="1" max="99" step="1">
+                            </label>
+                            <label class="torneo-alta-field torneo-alta-field--kpi">
+                                <span>Ranking <small class="torneo-alta-hint">1=activo</small></span>
+                                <input type="number" name="ranking" value="1" min="0" max="9" step="1">
+                            </label>
+                        </div>
+                        <label class="torneo-alta-field">
+                            <span>Estatus <small class="torneo-alta-hint">0 = pendiente</small></span>
+                            <input type="number" name="estatus" value="0" min="0" max="99" step="1">
+                        </label>
+                        <label class="torneo-alta-field">
+                            <span>Pare club</span>
+                            <input type="number" name="pareclub" value="0" min="0" max="9" step="1">
+                        </label>
+                    </div>
+
+                    <h2 class="torneo-alta-subtitle">Documentos</h2>
+                    <div class="torneo-alta-grid torneo-alta-grid--files">
+                        <div class="torneo-alta-filebox">
+                            <label class="torneo-alta-field" for="invitacion">
+                                <span>Invitación</span>
+                            </label>
+                            <p class="torneo-alta-hint">PDF o Word</p>
+                            <input type="file" id="invitacion" name="invitacion" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+                        </div>
+                        <div class="torneo-alta-filebox">
+                            <label class="torneo-alta-field" for="afiche">
+                                <span>Afiche</span>
+                            </label>
+                            <p class="torneo-alta-hint">JPG, PNG o WebP</p>
+                            <input type="file" id="afiche" name="afiche" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp">
+                            <div class="torneo-afiche-preview-wrap torneo-alta-preview-wrap" id="afiche-preview-wrap" aria-live="polite">
+                                <span class="torneo-afiche-preview-placeholder" id="afiche-preview-placeholder">Vista previa del afiche</span>
+                                <img id="afiche-preview" class="torneo-alta-preview-img" alt="">
+                            </div>
+                        </div>
+                    </div>
+
+                    <input type="hidden" name="publicar_landing" value="1">
+
+                    <div class="torneo-alta-actions">
+                        <button type="submit" class="torneo-alta-btn torneo-alta-btn--primary">Guardar torneo</button>
+                        <a href="index.php" class="torneo-alta-btn torneo-alta-btn--secondary">Volver</a>
+                    </div>
+                    <div id="form-crear-torneo-msg" class="form-msg torneo-alta-msg" style="display: none;"></div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Federación Venezolana de Dominó</p>
+    </footer>
+
+    <script type="module" src="src/js/crear_torneo.js"></script>
+</body>
+</html>

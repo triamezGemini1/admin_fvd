@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FVD — Panel de administración</title>
+    <link rel="icon" href="img/logonvofvd.ico" type="image/x-icon">
+    <link rel="stylesheet" href="dist/assets/css/main.css">
+</head>
+<body class="admin-fvd-panel">
+    <header class="main-header">
+        <div class="brand-container">
+            <a href="index.php"><img src="img/fvd-login-oficial.png" alt="Federación Venezolana de Dominó" class="main-logo"></a>
+        </div>
+        <nav id="main-nav" class="main-nav-actions">
+            <a id="hdr-link-inicio" href="index.php" class="btn-secondary" style="font-size: 0.85rem; padding: 0.45rem 0.9rem;">Inicio</a>
+        </nav>
+    </header>
+
+    <div id="delegado-torneos-context" class="delegado-torneos-context is-hidden" aria-label="Torneos activos"></div>
+
+    <main id="admin-root" class="admin-panel">
+        <div id="admin-gate-msg" class="admin-gate-msg" style="display: none;"></div>
+        <div id="admin-app" style="display: none;">
+            <div id="admin-panel-hero" class="admin-panel-hero is-hidden" aria-hidden="true">
+                <img src="img/panel-admin-gral.png" width="1200" height="400" alt="Panel de administración general FVD" loading="lazy">
+            </div>
+            <p class="admin-intro" id="admin-role-hint"></p>
+            <div class="admin-tabs" id="admin-tabs" role="tablist"></div>
+            <div id="admin-tab-panels"></div>
+            <p id="admin-global-msg" class="form-msg" style="display: none;"></p>
+        </div>
+    </main>
+
+    <dialog id="admin-modal" class="admin-modal">
+        <div class="admin-modal-head">
+            <h2 id="admin-modal-title" style="margin:0;font-size:1.1rem;">Editar</h2>
+        </div>
+        <div id="admin-modal-inner" class="admin-modal-inner"></div>
+        <div class="admin-modal-actions">
+            <button type="button" id="admin-modal-save" class="btn-primary">Guardar</button>
+            <button type="button" id="admin-modal-close" class="btn-secondary">Cerrar</button>
+        </div>
+    </dialog>
+
+    <footer>
+        <p>&copy; 2024 Federación Venezolana de Dominó</p>
+    </footer>
+
+    <script type="module" src="src/js/panel.js"></script>
+</body>
+</html>

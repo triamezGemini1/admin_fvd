@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>FVD — Afiliar atleta</title>
+
+    <link rel="icon" href="img/logonvofvd.ico" type="image/x-icon">
+
+    <link rel="stylesheet" href="dist/assets/css/main.css">
+
+</head>
+
+<body class="afiliacion-body">
+
+    <header class="main-header">
+
+        <div class="brand-container">
+
+            <a href="index.php"><img src="img/fvd-login-oficial.png" alt="Federación Venezolana de Dominó" class="main-logo"></a>
+
+        </div>
+
+        <nav id="main-nav" class="main-nav-actions">
+
+            <a id="hdr-link-inicio" href="index.php" class="btn-secondary" style="font-size: 0.85rem; padding: 0.45rem 0.9rem;">Inicio</a>
+
+            <a href="panel.html" class="btn-secondary" style="font-size: 0.85rem; padding: 0.45rem 0.9rem;">Administración</a>
+
+        </nav>
+
+    </header>
+
+
+
+    <main id="afiliacion-app" class="afiliacion-main">
+
+        <div id="afiliacion-gate" class="afiliacion-gate is-hidden"></div>
+
+        <div id="afiliacion-form-root" class="afiliacion-form-root is-hidden">
+
+            <div class="afiliacion-card">
+
+                <h1 class="afiliacion-title">Afiliación de atleta</h1>
+
+                <p class="afiliacion-lead">Consulte la cédula al salir del campo. Sin Nº FVD (0) la alta en federación sigue pendiente; el estatus 9 en portal indica pendiente de pago de anualidad, no el trámite del Nº FVD.</p>
+
+
+
+                <form id="form-afiliar" class="afiliacion-form" enctype="multipart/form-data" novalidate>
+
+                    <input type="hidden" name="user_id" id="user_id" value="">
+                    <input type="hidden" name="torneo_id" id="torneo_id_hidden" value="">
+
+
+
+                    <div class="afiliacion-twocol">
+
+                        <div class="afiliacion-twocol__data">
+
+                            <h2 class="afiliacion-block-title">Datos personales</h2>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 gap-y-3">
+
+                                <label class="afiliacion-field">
+
+                                    <span>Cédula *</span>
+
+                                    <input type="text" name="cedula" id="cedula" required maxlength="20" autocomplete="off" placeholder="V-12345678">
+
+                                </label>
+
+                                <label class="afiliacion-field">
+
+                                    <span>Nº FVD</span>
+
+                                    <div id="numfvd-delegado-wrap" class="is-hidden">
+
+                                        <p class="afiliacion-pendiente">Pendiente asignación</p>
+
+                                    </div>
+
+                                    <div id="numfvd-admin-wrap" class="is-hidden">
+
+                                        <input type="number" name="numfvd" id="numfvd_admin" min="0" step="1" value="0" title="Asigne el Nº FVD para disparar el tridente de afiliación en el torneo activo">
+
+                                    </div>
+
+                                </label>
+
+                                <label class="afiliacion-field">
+
+                                    <span>Sexo</span>
+
+                                    <select name="sexo" id="sexo">
+
+                                        <option value="0">—</option>
+
+                                        <option value="1">Masculino</option>
+
+                                        <option value="2">Femenino</option>
+
+                                    </select>
+
+                                </label>
+
+                                <label class="afiliacion-field col-span-full">
+
+                                    <span>Nombre completo *</span>
+
+                                    <input type="text" name="nombre" id="nombre" required maxlength="255" placeholder="Apellidos y nombres">
+
+                                </label>
+
+                                <label class="afiliacion-field">
+
+                                    <span>Fecha nac. *</span>
+
+                                    <input type="date" name="fechnac" id="fechnac">
+
+                                </label>
+
+                                <div class="afiliacion-field">
+
+                                    <span>Categoría (edad)</span>
+
+                                    <p id="categoria-edad" class="afiliacion-categoria" aria-live="polite">—</p>
+
+                                </div>
+
+                                <label class="afiliacion-field">
+
+                                    <span>Email *</span>
+
+                                    <input type="email" name="email" id="email" required maxlength="100" placeholder="correo@ejemplo.com">
+
+                                </label>
+
+                                <label class="afiliacion-field">
+
+                                    <span>Celular</span>
+
+                                    <input type="text" name="celular" id="celular" maxlength="20" placeholder="Opcional">
+
+                                </label>
+
+                                <div id="asoc-admin-wrap" class="afiliacion-field is-hidden">
+
+                                    <label>
+
+                                        <span>Asociación (id)</span>
+
+                                        <input type="number" name="asociacion_id" id="asociacion_id" min="1" step="1" placeholder="Opcional — vacío = sin asociación">
+
+                                    </label>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <div class="afiliacion-twocol__media">
+
+                            <h2 class="afiliacion-block-title">Foto carnet e imagen de cédula</h2>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 gap-y-3">
+
+                                <div class="afiliacion-media-block">
+
+                                    <label class="afiliacion-field" for="foto_atleta">Foto del atleta (carnet)</label>
+
+                                    <input type="file" id="foto_atleta" name="foto_atleta" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp">
+
+                                    <div class="afiliacion-preview" id="preview-foto-wrap">
+
+                                        <span id="preview-foto-ph" class="afiliacion-preview-ph">Vista previa</span>
+
+                                        <img id="preview-foto" alt="Vista previa foto" class="afiliacion-preview-img">
+
+                                    </div>
+
+                                </div>
+
+                                <div class="afiliacion-media-block">
+
+                                    <label class="afiliacion-field" for="imagen_cedula">Imagen de cédula</label>
+
+                                    <input type="file" id="imagen_cedula" name="imagen_cedula" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp">
+
+                                    <div class="afiliacion-preview" id="preview-ced-wrap">
+
+                                        <span id="preview-ced-ph" class="afiliacion-preview-ph">Vista previa</span>
+
+                                        <img id="preview-ced" alt="Vista previa cédula" class="afiliacion-preview-img">
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="afiliacion-actions">
+
+                        <button type="submit" id="btn-afiliar-submit" class="torneo-alta-btn torneo-alta-btn--primary">Guardar</button>
+
+                        <button type="button" id="btn-afiliar-limpiar" class="torneo-alta-btn torneo-alta-btn--secondary">Limpiar</button>
+
+                        <a href="index.php" class="torneo-alta-btn torneo-alta-btn--secondary">Volver</a>
+
+                    </div>
+
+                    <div id="form-afiliar-msg" class="form-msg torneo-alta-msg" style="display: none;"></div>
+
+                </form>
+
+            </div>
+
+        </div>
+
+    </main>
+
+
+
+    <footer>
+
+        <p>&copy; 2024 Federación Venezolana de Dominó</p>
+
+    </footer>
+
+
+
+    <script type="module" src="src/js/afiliar_atleta.js"></script>
+
+</body>
+
+</html>
+

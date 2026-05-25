@@ -1,0 +1,6 @@
+-- FVD — Tabla maestra `deuda_asociaciones` (PK: torneo_id + asociacion_id)
+-- La aplicación mantiene esta fila alineada con:
+--   • Contadores y montos EUR desde `movimiento_torneo` × tarifas `costos` (clase `MovimientoTorneoContadores`: cada indicador = 1 cuenta; sin cargos «otros» de `finanza_cargo`).
+--   • Abonos desde `relacion_pagos` (abono = SUM(monto_total) Bs, abono_eur = SUM(monto_dolares) EUR) por par torneo/asociación.
+-- Recalcular un torneo completo tras importaciones masivas:
+--   php tools/recalcular_deuda_asociaciones_torneo.php <torneo_id>

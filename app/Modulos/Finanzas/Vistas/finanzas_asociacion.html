@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FVD — Estado financiero asociación</title>
+    <link rel="icon" href="img/logonvofvd.ico" type="image/x-icon">
+    <link rel="stylesheet" href="dist/assets/css/main.css">
+</head>
+<body class="admin-fvd-panel ag-informe-report">
+    <header class="main-header">
+        <div class="brand-container">
+            <a href="panel.html"><img src="img/fvd-login-oficial.png" alt="Federación Venezolana de Dominó" class="main-logo"></a>
+        </div>
+        <nav id="main-nav" class="main-nav-actions">
+            <a href="panel.html" class="btn-secondary" style="font-size: 0.85rem; padding: 0.45rem 0.9rem;">Panel</a>
+        </nav>
+    </header>
+    <main id="fin-asoc-root" class="admin-panel ag-fin-page">
+        <div id="fin-asoc-gate" class="admin-gate-msg" style="display: none;"></div>
+        <div id="fin-asoc-app" style="display: none;">
+            <div class="ag-fin-page-head">
+                <div class="ag-fin-page-head-main">
+                    <h1 class="ag-fin-page-title" id="fin-asoc-title">Estado financiero</h1>
+                    <p class="ag-muted ag-fin-page-lead" id="fin-asoc-lead" style="display: none;"></p>
+                </div>
+                <button type="button" class="btn-secondary btn-sm" id="fin-asoc-print">Imprimir / PDF</button>
+            </div>
+            <div class="ag-inf-sheet ag-fin-asoc-sheet text-sm">
+                <div id="fin-asoc-body"></div>
+            </div>
+        </div>
+    </main>
+    <footer>
+        <p>&copy; 2024 Federación Venezolana de Dominó</p>
+    </footer>
+    <script type="module" src="src/js/finanzas_asociacion.js"></script>
+</body>
+</html>

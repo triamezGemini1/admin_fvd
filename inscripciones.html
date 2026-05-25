@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FVD — Inscripciones al torneo</title>
+    <link rel="icon" href="img/logonvofvd.ico" type="image/x-icon">
+    <link rel="stylesheet" href="dist/assets/css/main.css">
+</head>
+<body class="inscripciones-body">
+    <header class="main-header">
+        <div class="brand-container">
+            <a href="index.php"><img src="img/fvd-login-oficial.png" alt="Federación Venezolana de Dominó" class="main-logo"></a>
+        </div>
+        <nav id="ins-main-nav" class="main-nav-actions">
+            <a href="index.php" class="btn-secondary" style="font-size: 0.85rem; padding: 0.45rem 0.9rem;">Inicio</a>
+            <a href="panel.html" class="btn-secondary" style="font-size: 0.85rem; padding: 0.45rem 0.9rem;">Administración</a>
+        </nav>
+    </header>
+
+    <main class="inscripciones-main">
+        <div id="ins-gate" class="inscripciones-gate is-hidden"></div>
+        <div id="ins-root" class="inscripciones-root is-hidden">
+            <div class="inscripciones-card">
+                <h1 class="inscripciones-title">Inscripciones</h1>
+                <p id="ins-meta" class="inscripciones-meta" aria-live="polite"></p>
+
+                <aside id="ins-finance" class="ins-finance-gadget is-hidden" aria-live="polite"></aside>
+
+                <div id="ins-admin-asoc" class="inscripciones-admin-asoc is-hidden">
+                    <label class="inscripciones-field-inline">
+                        <span>Asociación (ID)</span>
+                        <input type="number" id="ins-asociacion-id" min="1" step="1" placeholder="Ej. 12" autocomplete="off">
+                    </label>
+                    <button type="button" id="ins-asoc-apply" class="btn-secondary">Cargar listas</button>
+                </div>
+
+                <section class="inscripciones-top" aria-labelledby="ins-form-heading">
+                    <h2 id="ins-form-heading" class="inscripciones-subtitle">Formulario de inscripción</h2>
+                    <p class="inscripciones-hint">Búsqueda predictiva (mín. 3 caracteres). Elija de la lista para anclar el id. Tras «Inscribir», el formulario se limpia para la siguiente operación.</p>
+                    <div id="ins-form-zone" class="inscripciones-form-zone"></div>
+                    <p id="ins-form-msg" class="form-msg" style="display: none;"></p>
+                </section>
+
+                <section class="inscripciones-bottom" aria-labelledby="ins-cols-heading">
+                    <h2 id="ins-cols-heading" class="inscripciones-subtitle">Disponibles · Inscritos</h2>
+                    <p class="inscripciones-two-col-lead">Dos columnas fijas: elegibles por género del torneo (lista izquierda) frente a inscritos con indicadores de movimiento (derecha).</p>
+                    <label class="inscripciones-filter">
+                        <span>Filtrar listas</span>
+                        <input type="search" id="ins-filter-lists" placeholder="Nombre, cédula, email…" autocomplete="off">
+                    </label>
+                    <div class="inscripciones-columns">
+                        <div class="inscripciones-col">
+                            <div class="inscripciones-col-head">Disponibles</div>
+                            <p class="inscripciones-col-lead">Usuarios de la asociación acordes al género del torneo y sin inscripción en este evento (rango de edad: pendiente en datos del torneo).</p>
+                            <ul id="ins-list-disponibles" class="inscripciones-ul"></ul>
+                        </div>
+                        <div class="inscripciones-col">
+                            <div class="inscripciones-col-head">Inscritos</div>
+                            <p class="inscripciones-col-lead">Registrados en movimiento de torneo con inscripción activa.</p>
+                            <ul id="ins-list-inscritos" class="inscripciones-ul"></ul>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Federación Venezolana de Dominó</p>
+    </footer>
+
+    <script type="module" src="src/js/inscripciones.js"></script>
+</body>
+</html>
