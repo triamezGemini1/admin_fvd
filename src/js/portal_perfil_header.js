@@ -1,7 +1,11 @@
 /**
  * Botones Mi perfil / Salir en cabeceras del portal y panel + diálogo de edición de perfil.
  */
+import { ensureFvdBrandLogos, ensureFvdHeaderTitle } from './fvd_app_header.js';
 import { reporteEsc } from './reporte_tabla.js';
+
+ensureFvdHeaderTitle();
+ensureFvdBrandLogos();
 
 async function fetchJson(url, options = {}) {
     const res = await fetch(url, { credentials: 'same-origin', ...options });

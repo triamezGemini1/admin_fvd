@@ -8,6 +8,8 @@ namespace Fvd\Modulos\Torneos\Modelos;
  * Bloqueo de edición en `movimiento_torneo` cuando el torneo ya no admite cambios de nómina:
  * - `finalizado_en` distinto de nulo (torneo cerrado en acta), o
  * - `fecha_limite_cambios` definida y la fecha de hoy es posterior a ese límite (solo consulta).
+ *
+ * Inscripciones en sitio (alta, retiro, teléfono): no aplican bloqueo por fechas (`estadoParaInscripciones`).
  */
 class TorneoMovimientoLock
 {
@@ -43,7 +45,7 @@ class TorneoMovimientoLock
             return ['bloqueado' => false, 'motivo' => null, 'finalizado' => false, 'limite_pasada' => false];
         }
         $limStr = substr(trim((string) $lim), 0, 10);
-        $hoy = (new DateTimeImmutable('today'))->format('Y-m-d');
+        $hoy = (new \DateTimeImmutable('today'))->format('Y-m-d');
         $limitePasada = $limStr !== '' && $hoy > $limStr;
         if ($limitePasada) {
             return [
@@ -68,6 +70,29 @@ class TorneoMovimientoLock
         if ($e['bloqueado']) {
             throw new \InvalidArgumentException($e['motivo'] ?? 'Movimiento de torneo no editable.');
         }
+    }
+
+    /**
+     * Inscripciones / retiros en sitio: sin límite por `finalizado_en` ni `fecha_limite_cambios`.
+     *
+     * @return array{bloqueado: bool, motivo: ?string, finalizado: bool, limite_pasada: bool}
+     */
+    public static function estadoParaInscripciones(\PDO $pdo, int $torneoId): array
+    {
+        return ['bloqueado' => false, 'motivo' => null, 'finalizado' => false, 'limite_pasada' => false];
+    }
+
+    public static function assertInscripcionPermitida(\PDO $pdo, int $torneoId): void
+    {
+        // Sin bloqueo por fechas en el módulo de inscripciones en sitio.
+    }
+
+    /**
+     * @return array{movimiento_torneo_bloqueado: bool, movimiento_bloqueo_motivo: ?string}
+     */
+    public static function flagsJsonInscripciones(\PDO $pdo, ?int $torneoId): array
+    {
+        return ['movimiento_torneo_bloqueado' => false, 'movimiento_bloqueo_motivo' => null];
     }
 
     /**

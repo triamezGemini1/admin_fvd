@@ -2,7 +2,8 @@
  * Recibo de pago — únicamente los campos de la operación (sin contenidos adicionales).
  */
 import { reporteEsc } from './reporte_tabla.js';
-import { mountPortalPerfilHeader } from './portal_perfil_header.js';
+import { initFvdReportPage } from './fvd_report_page.js';
+import { initDelegadoTorneosBar, persistJornadaDesdeAuth } from './delegado_torneos_bar.js';
 
 async function fetchJson(url, options = {}) {
     const res = await fetch(url, { credentials: 'same-origin', ...options });
@@ -112,7 +113,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (app) app.style.display = 'block';
     if (!body || !head) return;
 
-    mountPortalPerfilHeader(document.getElementById('main-nav'));
+    persistJornadaDesdeAuth(data);
+    initFvdReportPage();
+    void initDelegadoTorneosBar();
 
     body.innerHTML = '<p class="ag-muted">Cargando recibo…</p>';
 

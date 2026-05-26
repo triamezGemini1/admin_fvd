@@ -4,6 +4,7 @@
  */
 
 import { mountPortalPerfilHeader } from './portal_perfil_header.js';
+import { initDelegadoTorneosBar, persistJornadaDesdeAuth } from './delegado_torneos_bar.js';
 
 const API_CHECK = 'api/check_user.php';
 const API_SAVE = 'api/save_afiliacion.php';
@@ -238,6 +239,8 @@ async function verificarAcceso() {
         aplicarRolUi();
         if (!document.body.classList.contains('afiliacion-body--embed')) {
             mountPortalPerfilHeader(document.getElementById('main-nav'));
+            persistJornadaDesdeAuth(ctx);
+            void initDelegadoTorneosBar();
         }
         if (ctx.rol === 'delegado') {
             const hi = document.getElementById('hdr-link-inicio');
@@ -290,6 +293,24 @@ async function consultarCedula() {
         if (!data.exists) {
             document.getElementById('user_id').value = '';
             setSubmitLabel(false);
+            if (data.persona_externa && typeof data.persona_externa === 'object') {
+                const pe = data.persona_externa;
+                if (pe.cedula) {
+                    document.getElementById('cedula').value = String(pe.cedula);
+                }
+                document.getElementById('nombre').value = pe.nombre || '';
+                document.getElementById('fechnac').value = pe.fechnac ? String(pe.fechnac).slice(0, 10) : '';
+                if (pe.sexo === 1 || pe.sexo === 2) {
+                    document.getElementById('sexo').value = String(pe.sexo);
+                }
+                actualizarCategoriaDesdeFecha();
+                if (msg) {
+                    msg.textContent =
+                        'Datos cargados desde el registro nacional de personas. Complete email y demás campos, luego guarde para solicitar la afiliación.';
+                    msg.className = 'form-msg torneo-alta-msg ok';
+                    msg.style.display = 'block';
+                }
+            }
             return;
         }
         const u = data.user;

@@ -2,7 +2,8 @@
  * Reporte participación en columnas (totales globales por asociación + detalle por torneo).
  */
 import { reporteEsc, reporteLigarPaginador, REPORTE_FILAS_POR_PAGINA } from './reporte_tabla.js';
-import { mountPortalPerfilHeader } from './portal_perfil_header.js';
+import { initFvdReportPage } from './fvd_report_page.js';
+import { initDelegadoTorneosBar, persistJornadaDesdeAuth } from './delegado_torneos_bar.js';
 import {
     hrefInformeConsolidado,
     hrefReporteAsociacionesTorneo,
@@ -195,7 +196,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         await loadReporte(body);
         document.getElementById('btn-rep-part-print')?.addEventListener('click', () => window.print());
-        mountPortalPerfilHeader(document.getElementById('main-nav'));
+        persistJornadaDesdeAuth(data);
+        initFvdReportPage();
+        void initDelegadoTorneosBar();
     } catch (e) {
         console.error('reporte_participacion init', e);
         setError('No se pudo iniciar la página.');

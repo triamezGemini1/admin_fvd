@@ -109,6 +109,22 @@ class AdminPolicy
         }
     }
 
+    /**
+     * Gastos operativos del torneo, resultado ing./gastos y vistas consolidadas FVD.
+     * Solo administración general; delegados usan estado de cuenta / informe de su asociación.
+     */
+    public static function puedeVerFinanzasOperativasFvd(): bool
+    {
+        return Auth::check() && Auth::rol() === 'admingral' && self::puedeAccederPanel();
+    }
+
+    public static function assertFinanzasOperativasFvd(): void
+    {
+        if (!self::puedeVerFinanzasOperativasFvd()) {
+            self::deny403();
+        }
+    }
+
     /** Lectura del informe consolidado nacional (todas las asociaciones). */
     public static function puedeLeerInformeConsolidadoGlobal(): bool
     {

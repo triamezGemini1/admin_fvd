@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Fvd\Modulos\Atletas\Modelos;
 
 use Fvd\Modulos\Finanzas\Modelos\MovimientoTorneoContadores;
+use RuntimeException;
+use Throwable;
 
 /**
  * Sincroniza en `movimiento_torneo` los campos afiliacion, anualidad, carnet,

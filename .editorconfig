@@ -1,0 +1,11 @@
+# Evita BOM en PHP (rompe declare(strict_types=1))
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.php]
+charset = utf-8

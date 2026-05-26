@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const user = userEl ? userEl.value.trim() : '';
         const password = passEl ? passEl.value : '';
         if (msg) {
-            msg.style.display = 'none';
+            msg.hidden = true;
             msg.textContent = '';
         }
         try {
@@ -48,15 +48,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (msg) {
                 msg.textContent = data.message || 'Credenciales inválidas.';
-                msg.className = 'form-msg err';
-                msg.style.display = 'block';
+                msg.className = 'portal-landing-form-msg portal-landing-form-msg--err';
+                msg.hidden = false;
             }
         } catch (e) {
             console.error(e);
             if (msg) {
                 msg.textContent = 'Error de conexión.';
-                msg.className = 'form-msg err';
-                msg.style.display = 'block';
+                msg.className = 'portal-landing-form-msg portal-landing-form-msg--err';
+                msg.hidden = false;
             }
         }
     });

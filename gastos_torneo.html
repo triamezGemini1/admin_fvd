@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0d3c66">
+    <title>FVD — Gastos del torneo</title>
+    <link rel="icon" href="img/logonvofvd.ico" type="image/x-icon">
+    <link rel="stylesheet" href="dist/assets/css/main.css">
+</head>
+<body class="admin-fvd-panel ag-gasto-torneo-body ag-fin-periodo-body ag-fvd-report-page">
+    <header class="main-header">
+        <div class="brand-container">
+            <a href="panel.html"><img src="img/fvd-portal-logo.png" alt="Federación Venezolana de Dominó" class="main-logo"></a>
+            <p class="fvd-header-title">FEDERACION VENEZOLANA DE DOMINO</p>
+        </div>
+        <nav id="main-nav" class="main-nav-actions">
+            <a href="resumen_finanzas_fvd.html" class="btn-secondary btn-sm">Resumen periodo</a>
+            <a href="resultado_financiero_torneo.html" class="btn-secondary btn-sm">Resultado ing./gastos</a>
+            <a href="panel.html" class="btn-secondary btn-sm">Panel</a>
+        </nav>
+    </header>
+
+    <div id="delegado-torneos-context" class="delegado-torneos-context is-hidden" aria-label="Torneos activos"></div>
+
+    <main class="ag-fin-periodo-main ag-gasto-torneo-main">
+        <div id="gasto-gate" class="admin-gate-msg" style="display: none;"></div>
+        <div id="gasto-app" style="display: none;">
+            <header class="ag-fin-periodo-head">
+                <h1>Gastos del torneo</h1>
+                <p id="gasto-torneo-nombre" class="ag-muted">—</p>
+            </header>
+
+            <div class="ag-gasto-torneo-toolbar admin-toolbar">
+                <label class="ag-gasto-torneo-field ag-gasto-torneo-field--torneo">
+                    <span>Torneo</span>
+                    <select id="gasto-torneo-select" class="ag-fin-input ag-gasto-input"></select>
+                </label>
+            </div>
+
+            <div class="ag-gasto-layout">
+                <section class="ag-gasto-torneo-card ag-gasto-torneo-card--form" aria-labelledby="gasto-form-title">
+                    <h2 id="gasto-form-title" class="ag-gasto-card-title">Registrar gasto</h2>
+                    <form id="gasto-torneo-form" class="ag-gasto-torneo-form">
+                        <label class="ag-gasto-torneo-field ag-gasto-torneo-field--full">
+                            <span>Concepto</span>
+                            <input type="text" name="concepto" required maxlength="120" class="ag-fin-input ag-gasto-input" placeholder="Ej. arbitraje, transporte, sede">
+                        </label>
+                        <div class="ag-gasto-form-row">
+                            <label class="ag-gasto-torneo-field">
+                                <span>Fecha</span>
+                                <input type="date" name="fecha" required class="ag-fin-input ag-gasto-input">
+                            </label>
+                            <label class="ag-gasto-torneo-field">
+                                <span>Tasa referente (Bs / 1 €)</span>
+                                <input type="number" name="tasa_eur_bs" required min="0.0001" step="0.0001" inputmode="decimal" class="ag-fin-input ag-gasto-input ag-fin-input--num" id="gasto-tasa">
+                            </label>
+                        </div>
+                        <div class="ag-gasto-form-row">
+                            <label class="ag-gasto-torneo-field">
+                                <span>Monto Bs</span>
+                                <input type="number" name="monto_bs" required min="0.01" step="0.01" inputmode="decimal" class="ag-fin-input ag-gasto-input ag-fin-input--num" id="gasto-monto-bs">
+                            </label>
+                            <label class="ag-gasto-torneo-field">
+                                <span>Monto referente (€)</span>
+                                <input type="number" name="monto_eur" min="0" step="0.01" inputmode="decimal" readonly class="ag-fin-input ag-gasto-input ag-fin-input--num ag-gasto-input--readonly" id="gasto-monto-eur" title="Calculado desde Bs y tasa">
+                            </label>
+                        </div>
+                        <div class="ag-gasto-form-row ag-gasto-form-row--factura">
+                            <label class="ag-gasto-torneo-field">
+                                <span>Nº factura</span>
+                                <input type="text" name="nro_factura" maxlength="80" class="ag-fin-input ag-gasto-input" placeholder="Opcional">
+                            </label>
+                            <label class="ag-gasto-torneo-field ag-gasto-torneo-field--notas">
+                                <span>Notas</span>
+                                <textarea name="notas" maxlength="500" rows="2" class="ag-fin-input ag-gasto-input ag-gasto-textarea" placeholder="Observaciones"></textarea>
+                            </label>
+                        </div>
+                        <div class="ag-gasto-torneo-actions">
+                            <button type="submit" class="btn-primary ag-gasto-btn-submit">Registrar gasto</button>
+                            <span id="gasto-form-fb" class="ag-gasto-fb" role="status"></span>
+                        </div>
+                    </form>
+                </section>
+
+                <section class="ag-gasto-torneo-card ag-gasto-torneo-card--lista" aria-labelledby="gasto-list-title">
+                    <h2 id="gasto-list-title" class="ag-gasto-card-title">Gastos registrados</h2>
+                    <p id="gasto-totales" class="ag-gasto-totales ag-muted">—</p>
+                    <div id="gasto-lista" class="ag-gasto-lista"></div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Federación Venezolana de Dominó</p>
+    </footer>
+
+    <script type="module" src="src/js/gastos_torneo.js"></script>
+</body>
+</html>

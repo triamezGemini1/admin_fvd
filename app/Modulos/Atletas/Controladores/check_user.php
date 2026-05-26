@@ -28,8 +28,12 @@ if (!Auth::check()) {
 
 AdminPolicy::assertUsuarioCreate();
 
-$cedula = isset($_GET['cedula']) ? (string) $_GET['cedula'] : '';
-$cedula = AfiliacionAtleta::normalizarCedula($cedula);
+$cedulaRaw = isset($_GET['cedula']) ? trim((string) $_GET['cedula']) : '';
+$nacionalidad = isset($_GET['nacionalidad']) ? strtoupper(trim((string) $_GET['nacionalidad'])) : null;
+if ($nacionalidad === '') {
+    $nacionalidad = null;
+}
+$cedula = AfiliacionAtleta::normalizarCedula($cedulaRaw);
 
 if ($cedula === '') {
     http_response_code(400);
@@ -50,12 +54,18 @@ try {
         exit;
     }
     if ($chk['user'] === null) {
-        echo json_encode([
+        $externa = AfiliacionAtleta::buscarPersonaExternaParaAfiliacion($cedulaRaw !== '' ? $cedulaRaw : $cedula, $nacionalidad);
+        $payload = [
             'ok' => true,
             'exists' => false,
             'blocked' => false,
             'user' => null,
-        ]);
+        ];
+        if ($externa !== null) {
+            $payload['persona_externa'] = $externa['persona'];
+            $payload['persona_fuente'] = $externa['fuente'];
+        }
+        echo json_encode($payload);
         exit;
     }
 

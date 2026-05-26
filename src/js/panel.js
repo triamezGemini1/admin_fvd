@@ -21,6 +21,12 @@ import {
 } from './reporte_tabla.js';
 import { mountPortalPerfilHeader } from './portal_perfil_header.js';
 import {
+    initDelegadoTorneosBar,
+    getDelegadoTorneoIdSeleccionado,
+    getDelegadoTorneosCache,
+    persistJornadaDesdeAuth,
+} from './delegado_torneos_bar.js';
+import {
     guardarTorneoFinanzas,
     htmlBannerTorneoCuentas,
     htmlBarraTorneoFinanzas,
@@ -47,7 +53,7 @@ import { loadNominaDesdeAtletasPanel } from './panel_nomina_atletas.js';
 
 /** Identidad visual FVD (activos en /img) */
 const FVD_BRAND = {
-    loginPng: 'img/fvd-login-oficial.png',
+    loginPng: 'img/fvd-portal-logo.png',
     favicon: 'img/logonvofvd.ico',
 };
 
@@ -185,53 +191,16 @@ function onDelegadoTorneoSelect(torneoId) {
     refreshDelegadoTorneoDependentPanels();
 }
 
-async function initDelegadoTorneosBar() {
-    const wrap = document.getElementById('delegado-torneos-context');
-    if (!wrap || !ctx || ctx.rol !== 'delegado') return;
-    wrap.classList.remove('is-hidden');
-    wrap.innerHTML = '<p class="ag-muted delegado-torneos-context__empty">Cargando torneos activos…</p>';
-    const { res, data } = await fetchJson('api/torneos_activos_list.php');
-    if (!res.ok || !data.ok) {
-        wrap.innerHTML = `<p class="error delegado-torneos-context__empty">${esc(data.message || 'No se pudieron cargar los torneos.')}</p>`;
-        delegadoTorneosItemsCache = [];
-        return;
-    }
-    const items = Array.isArray(data.items) ? data.items : [];
-    delegadoTorneosItemsCache = items;
-    if (items.length === 0) {
-        listState.delegadoTorneoId = 0;
-        wrap.innerHTML =
-            '<p class="ag-muted delegado-torneos-context__empty">No hay torneos activos; las operaciones de movimiento requieren un torneo abierto.</p>';
-        return;
-    }
-    let sel = 0;
-    try {
-        sel = parseInt(sessionStorage.getItem('fvd_delegado_torneo_id') || '0', 10) || 0;
-    } catch (_) {
-        sel = 0;
-    }
-    if (!items.some((t) => Number(t.torneo) === sel)) {
-        sel = Number(items[0].torneo) || 0;
-    }
-    listState.delegadoTorneoId = sel;
-    try {
-        sessionStorage.setItem('fvd_delegado_torneo_id', String(sel));
-    } catch (_) {}
-    const btns = items
-        .map((t) => {
-            const id = Number(t.torneo) || 0;
-            const lab = String(t.nombre || '').trim() || `Torneo ${id}`;
-            const active = id === sel ? ' is-active' : '';
-            return `<button type="button" class="delegado-tor-badge${active}" data-torneo-id="${esc(String(id))}" title="${esc(lab)}">${esc(lab)}</button>`;
-        })
-        .join('');
-    wrap.innerHTML = `<div class="delegado-torneos-context__inner"><span class="delegado-torneos-context__label">Torneo (movimientos / inscripciones):</span>${btns}</div>`;
-    wrap.querySelectorAll('.delegado-tor-badge').forEach((btn) => {
-        btn.addEventListener('click', () => {
-            const raw = btn.getAttribute('data-torneo-id');
-            onDelegadoTorneoSelect(parseInt(String(raw || '0'), 10) || 0);
-        });
+async function initPanelJornadaBar() {
+    if (!ctx || !ctx.puede_panel_admin) return;
+    await initDelegadoTorneosBar({
+        showWhen: (a) => a.logged && (a.rol === 'admingral' || a.rol === 'delegado'),
     });
+    if (ctx.rol === 'delegado') {
+        const tid = getDelegadoTorneoIdSeleccionado();
+        if (tid > 0) onDelegadoTorneoSelect(tid);
+        delegadoTorneosItemsCache = getDelegadoTorneosCache();
+    }
 }
 
 /**
@@ -382,6 +351,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
     ctx = data;
+    persistJornadaDesdeAuth(data);
     if (gate) gate.style.display = 'none';
     if (app) app.style.display = 'block';
     const pTr = parseInt(String(data.pendientes_traspaso_inscripcion || '0'), 10) || 0;
@@ -391,10 +361,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             await modalSaveHandler();
         }
     });
+    await initPanelJornadaBar();
     if (data.rol === 'delegado') {
         const hi = document.getElementById('hdr-link-inicio');
         if (hi) hi.setAttribute('href', 'panel.html');
-        await initDelegadoTorneosBar();
     }
     if (data.rol === 'admingral') {
         document.body.classList.remove('admin-fvd-panel--del');
@@ -513,7 +483,7 @@ function mountDelegadoPanel(app, pTr) {
                 <h2 id="agdash-h-del-ins" class="agdash-col-h">Inscripciones</h2>
                 <div class="agdash-items">
                     <a href="inscripciones.html${insQs}" class="agdash-item agdash-item--op1 agdash-item--link"><span class="agdash-item-label">Inscripciones</span><span class="agdash-item-ic" aria-hidden="true">📋</span></a>
-                    <a href="inscripciones.html${insQs}" class="agdash-item agdash-item--op2 agdash-item--link"><span class="agdash-item-label">Administrador de inscripciones</span><span class="agdash-item-ic" aria-hidden="true">⚙</span></a>
+                    <a href="inscripciones_admin.html${insQs}" class="agdash-item agdash-item--op2 agdash-item--link"><span class="agdash-item-label">Administrador de inscripciones</span><span class="agdash-item-ic" aria-hidden="true">⚙</span></a>
                 </div>
             </section>
             <section class="agdash-col agdash-col--del-fin agdash-col--finanzas" aria-labelledby="agdash-h-del-fin">
@@ -1340,6 +1310,9 @@ function mountAdmingralPanel(app, pTr) {
                     <h2 id="agdash-h-fin" class="agdash-col-h">Finanzas</h2>
                     <div class="agdash-items">
                         <button type="button" class="agdash-item agdash-item--fn1" data-ag-ws="fin" data-ag-title="Estado de cuentas y deudas"><span class="agdash-item-label">Estado de cuentas</span><span class="agdash-item-ic" aria-hidden="true">€</span></button>
+                        <button type="button" class="agdash-item agdash-item--fn0" data-ag-nav="resumen_finanzas_fvd.html"><span class="agdash-item-label">Resumen del periodo</span><span class="agdash-item-ic" aria-hidden="true">∑</span></button>
+                        <button type="button" class="agdash-item agdash-item--fn5" data-ag-nav="gastos_torneo.html"><span class="agdash-item-label">Gastos del torneo</span><span class="agdash-item-ic" aria-hidden="true">−</span></button>
+                        <button type="button" class="agdash-item agdash-item--fn6" data-ag-nav="resultado_financiero_torneo.html"><span class="agdash-item-label">Resultado ing./gastos</span><span class="agdash-item-ic" aria-hidden="true">±</span></button>
                         <button type="button" class="agdash-item agdash-item--fn2" data-ag-ws="fin-otros" data-ag-title="Torneos pasados — finanzas por torneo"><span class="agdash-item-label">Torneos pasados</span><span class="agdash-item-ic" aria-hidden="true">◎</span></button>
                         <button type="button" class="agdash-item agdash-item--fn3" data-ag-nav="${hrefInformesConsolidado()}"><span class="agdash-item-label">Consolidado</span><span class="agdash-item-ic" aria-hidden="true">📊</span></button>
                         <button type="button" class="agdash-item agdash-item--fn4" data-ag-nav="${hrefReporteParticipacion()}"><span class="agdash-item-label">Participación</span><span class="agdash-item-ic" aria-hidden="true">📋</span></button>

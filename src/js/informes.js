@@ -17,7 +17,8 @@ import {
     filaTieneEstadisticaRenglon,
     RENGLONES_ESTADISTICA,
 } from './reporte_tabla.js';
-import { mountPortalPerfilHeader } from './portal_perfil_header.js';
+import { initFvdReportPage } from './fvd_report_page.js';
+import { initDelegadoTorneosBar, persistJornadaDesdeAuth } from './delegado_torneos_bar.js';
 import {
     guardarTorneoFinanzas,
     htmlBannerTorneoCuentas,
@@ -260,7 +261,7 @@ function renderReporteAsociacionesTorneos(body, data) {
         </div>
         <p class="ag-inf-actions"><a class="btn-secondary" href="${informesHomeHref()}">${esDel ? 'Inicio' : 'Cambiar vista'}</a>
         ${!esDel ? `<a class="btn-secondary" href="${hrefInformeConsolidado({ torneoId: qsTorneoInforme() })}">Vista consolidada por torneo</a>` : ''}
-        <a class="btn-secondary" href="${hrefReporteParticipacion()}">Participación (columnas)</a>
+        ${!esDel ? `<a class="btn-secondary" href="${hrefReporteParticipacion()}">Participación (columnas)</a>` : ''}
         </p>`;
     resetPaginasDetalleFinanza(REP_ASOC_TOR_PREFIX);
     wirePaginacionReporteAsociacionesTorneo(body, list, REP_ASOC_TOR_PREFIX, () => {
@@ -1045,7 +1046,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         await loadInforme(body);
 
         document.getElementById('btn-inf-print')?.addEventListener('click', () => window.print());
-        mountPortalPerfilHeader(document.getElementById('main-nav'));
+        persistJornadaDesdeAuth(data);
+        initFvdReportPage();
+        void initDelegadoTorneosBar();
     } catch (e) {
         console.error('informes init', e);
         setInfError('No se pudo iniciar la página de informes.');

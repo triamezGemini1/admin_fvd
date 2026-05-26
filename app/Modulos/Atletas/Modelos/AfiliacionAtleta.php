@@ -4,7 +4,15 @@ declare(strict_types=1);
 
 namespace Fvd\Modulos\Atletas\Modelos;
 
+use Fvd\Modulos\Auth\Modelos\AdminPolicy;
+use Fvd\Modulos\Auth\Modelos\Auth;
+use Fvd\Modulos\Delegados\Modelos\DelegadoMovimientoTorneo;
+use Fvd\Modulos\Finanzas\Modelos\DeudaAsociaciones;
 use Fvd\Modulos\Torneos\Modelos\TorneoMovimientoLock;
+use Fvd\Servicios\PersonaService;
+use InvalidArgumentException;
+use RuntimeException;
+use Throwable;
 
 /**
  * Alta / actualización de atleta en `usuarios` y solicitudes en `movimiento_torneo`.
@@ -45,14 +53,58 @@ class AfiliacionAtleta
         if ($cedula === '') {
             return null;
         }
-        $stmt = $pdo->prepare(
-            'SELECT id, numfvd, cedula, sexo, nombre, fechnac, email, celular, username, role, status, asociacion_id, posirnk, urlimgfoto, urlimgcedula, created_at, updated_at FROM ' . self::TABLE_U . ' WHERE cedula = :c LIMIT 1'
-        );
-        $stmt->bindValue(':c', $cedula, \PDO::PARAM_STR);
-        $stmt->execute();
-        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        foreach (self::variantesCedulaBusqueda($cedula) as $variante) {
+            $stmt = $pdo->prepare(
+                'SELECT id, numfvd, cedula, sexo, nombre, fechnac, email, celular, username, role, status, asociacion_id, posirnk, urlimgfoto, urlimgcedula, created_at, updated_at FROM ' . self::TABLE_U . ' WHERE cedula = :c LIMIT 1'
+            );
+            $stmt->bindValue(':c', $variante, \PDO::PARAM_STR);
+            $stmt->execute();
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+            if ($row !== false) {
+                return $row;
+            }
+        }
 
-        return $row === false ? null : $row;
+        return null;
+    }
+
+    /**
+     * Si no hay usuario en portal, consulta dbo_persona (PersonaService) para precargar solicitud de afiliación.
+     *
+     * @return array{persona: array<string, mixed>, fuente: string}|null
+     */
+    public static function buscarPersonaExternaParaAfiliacion(string $cedulaInput, ?string $nacionalidad = null): ?array
+    {
+        if (!PersonaService::isConfigured()) {
+            return null;
+        }
+        $result = PersonaService::buscarDesdeTextoCedula($cedulaInput, $nacionalidad);
+        if (empty($result['encontrado']) || !isset($result['persona']) || !is_array($result['persona'])) {
+            return null;
+        }
+
+        return [
+            'persona' => $result['persona'],
+            'fuente' => (string) ($result['fuente'] ?? 'externa'),
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function variantesCedulaBusqueda(string $cedula): array
+    {
+        $out = [$cedula];
+        $solo = preg_replace('/^[VEJP]/i', '', $cedula) ?? '';
+        if ($solo !== '' && $solo !== $cedula) {
+            $out[] = $solo;
+        }
+        $digits = preg_replace('/\D/', '', $cedula) ?? '';
+        if ($digits !== '' && !in_array($digits, $out, true)) {
+            $out[] = $digits;
+        }
+
+        return array_values(array_unique($out));
     }
 
     /**
@@ -215,8 +267,7 @@ class AfiliacionAtleta
             } elseif (!$esAdmin && !$isUpdate && $uid > 0) {
                 $torneoDelegadoAfiliacion = isset($post['torneo_id']) ? (int) $post['torneo_id'] : 0;
                 if ($torneoDelegadoAfiliacion > 0) {
-                    require_once dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'DelegadoMovimientoTorneo.php';
-                    \DelegadoMovimientoTorneo::upsertNuevoAfiliado($pdo, $uid, $torneoDelegadoAfiliacion);
+                    DelegadoMovimientoTorneo::upsertNuevoAfiliado($pdo, $uid, $torneoDelegadoAfiliacion);
                     $movimientoCreado = true;
                 }
             }
@@ -224,14 +275,12 @@ class AfiliacionAtleta
             $pdo->commit();
 
             try {
-                require_once dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'DeudaAsociaciones.php';
                 $tidAf = self::torneoAfiliacionActivoId($pdo);
                 if ($tidAf !== null) {
-                    \DeudaAsociaciones::recalcularPorUsuarioTorneo($pdo, $tidAf, $uid);
+                    DeudaAsociaciones::recalcularPorUsuarioTorneo($pdo, $tidAf, $uid);
                 }
                 if (!$esAdmin && !$isUpdate && $torneoDelegadoAfiliacion > 0) {
-                    require_once dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'DelegadoMovimientoTorneo.php';
-                    \DelegadoMovimientoTorneo::recalcularDeudaUsuarioTorneo($pdo, $torneoDelegadoAfiliacion, $uid);
+                    DelegadoMovimientoTorneo::recalcularDeudaUsuarioTorneo($pdo, $torneoDelegadoAfiliacion, $uid);
                 }
             } catch (Throwable $eDeuda) {
                 error_log('AfiliacionAtleta::guardar → DeudaAsociaciones: ' . $eDeuda->getMessage());

@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Fvd\Modulos\Delegados\Modelos;
 
 use Fvd\Modulos\Atletas\Modelos\AfiliacionAtleta;
+use Fvd\Modulos\Auth\Modelos\Auth;
+use Fvd\Modulos\Torneos\Modelos\TorneoMovimientoLock;
+use InvalidArgumentException;
 
 /**
  * Operaciones del delegado sobre `movimiento_torneo` por torneo seleccionado.
@@ -120,6 +123,100 @@ class DelegadoMovimientoTorneo
     /**
      * @return list<array{torneo: int, nombre: string, fechator: ?string}>
      */
+    /**
+     * Torneo en curso para inscripciones (el más reciente sin cerrar).
+     */
+    public static function torneoActivoId(\PDO $pdo): ?int
+    {
+        $fila = self::filaTorneoActivoFallback($pdo);
+
+        return $fila !== null ? (int) ($fila['torneo'] ?? 0) : null;
+    }
+
+    /**
+     * Variantes activas del mismo campeonato (`grupo_evento_id`) que el torneo indicado.
+     *
+     * @return list<array{torneo: int, nombre: string, fechator: ?string, tipo: int, grupo_evento_id: int}>
+     */
+    public static function variantesCampeonatoActivas(\PDO $pdo, int $torneoId): array
+    {
+        if ($torneoId < 1) {
+            return [];
+        }
+        $st = $pdo->prepare(
+            'SELECT `grupo_evento_id` FROM `' . self::T_T . '` WHERE `torneo` = :id AND `finalizado_en` IS NULL LIMIT 1'
+        );
+        $st->bindValue(':id', $torneoId, \PDO::PARAM_INT);
+        $st->execute();
+        $base = $st->fetch(\PDO::FETCH_ASSOC);
+        if ($base === false) {
+            return [];
+        }
+        $gid = (int) ($base['grupo_evento_id'] ?? 0);
+        if ($gid < 1) {
+            return [];
+        }
+        $st2 = $pdo->prepare(
+            'SELECT `torneo`, `nombre`, `fechator`, `tipo`, `grupo_evento_id` FROM `' . self::T_T . '`
+             WHERE `finalizado_en` IS NULL AND `grupo_evento_id` = :g
+             ORDER BY `tipo` ASC, `torneo` ASC'
+        );
+        $st2->bindValue(':g', $gid, \PDO::PARAM_INT);
+        $st2->execute();
+        $rows = $st2->fetchAll(\PDO::FETCH_ASSOC);
+        if ($rows === false || count($rows) < 2) {
+            return [];
+        }
+
+        return array_map(static function (array $r): array {
+            return [
+                'torneo' => (int) ($r['torneo'] ?? 0),
+                'nombre' => trim((string) ($r['nombre'] ?? '')),
+                'fechator' => isset($r['fechator']) && $r['fechator'] !== null && $r['fechator'] !== ''
+                    ? (string) $r['fechator'] : null,
+                'tipo' => (int) ($r['tipo'] ?? 0),
+                'grupo_evento_id' => (int) ($r['grupo_evento_id'] ?? 0),
+            ];
+        }, $rows);
+    }
+
+    /**
+     * Torneo de jornada: siempre el activo, salvo cambio explícito a otra variante del mismo campeonato.
+     */
+    public static function resolverTorneoIdJornada(\PDO $pdo, ?int $solicitado = null): int
+    {
+        $activoId = self::torneoActivoId($pdo);
+        if ($activoId === null || $activoId < 1) {
+            return 0;
+        }
+        $candidato = $solicitado ?? 0;
+        if ($candidato < 1 && session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        if ($candidato < 1 && isset($_SESSION['fvd_jornada_torneo_id'])) {
+            $candidato = (int) $_SESSION['fvd_jornada_torneo_id'];
+        }
+        if ($candidato < 1 && isset($_SESSION['fvd_delegado_torneo_id'])) {
+            $candidato = (int) $_SESSION['fvd_delegado_torneo_id'];
+        }
+        if ($candidato < 1) {
+            return $activoId;
+        }
+        if ($candidato === $activoId) {
+            return $activoId;
+        }
+        $variantes = self::variantesCampeonatoActivas($pdo, $activoId);
+        if ($variantes === []) {
+            return $activoId;
+        }
+        $ids = array_map(static fn (array $v): int => (int) ($v['torneo'] ?? 0), $variantes);
+        if (in_array($candidato, $ids, true)) {
+            return $candidato;
+        }
+
+        return $activoId;
+    }
+
     public static function listarTorneosActivos(\PDO $pdo): array
     {
         $sql = 'SELECT `torneo`, `nombre`, `fechator` FROM `' . self::T_T . '`
@@ -138,6 +235,95 @@ class DelegadoMovimientoTorneo
                     ? (string) $r['fechator'] : null,
             ];
         }, $rows);
+    }
+
+    public static function persistirTorneoJornadaSesion(int $torneoId): void
+    {
+        if ($torneoId < 1) {
+            return;
+        }
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            $_SESSION['fvd_jornada_torneo_id'] = $torneoId;
+            $_SESSION['fvd_delegado_torneo_id'] = (string) $torneoId;
+        }
+    }
+
+    /**
+     * Torneo de trabajo de la jornada (persistido en sesión PHP para toda la sesión del panel).
+     *
+     * @return array<string, mixed>|null
+     */
+    public static function resolverTorneoJornada(\PDO $pdo, ?int $preferTorneoId = null, bool $persistirSesion = true): ?array
+    {
+        $candidato = self::resolverTorneoIdJornada($pdo, $preferTorneoId);
+        if ($candidato < 1) {
+            return null;
+        }
+
+        $stmt = $pdo->prepare(
+            'SELECT * FROM `' . self::T_T . '` WHERE `torneo` = :id AND `finalizado_en` IS NULL LIMIT 1'
+        );
+        $stmt->bindValue(':id', $candidato, \PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        if ($row === false) {
+            return self::filaTorneoActivoFallback($pdo);
+        }
+
+        if ($persistirSesion) {
+            self::persistirTorneoJornadaSesion($candidato);
+        }
+
+        return $row;
+    }
+
+    /**
+     * @return array{
+     *   torneos_activos: list<array{torneo: int, nombre: string, fechator: ?string}>,
+     *   torneo_activo_id: int|null,
+     *   torneo_jornada_id: int|null,
+     *   torneo_jornada: array{torneo: int, nombre: string}|null,
+     *   campeonato_variantes: list<array{torneo: int, nombre: string, fechator: ?string, tipo: int, grupo_evento_id: int}>,
+     *   permite_selector_campeonato: bool
+     * }
+     */
+    public static function bootstrapJornada(\PDO $pdo, ?int $preferTorneoId = null): array
+    {
+        $activoId = self::torneoActivoId($pdo);
+        $torneo = self::resolverTorneoJornada($pdo, $preferTorneoId, true);
+        $tid = $torneo !== null ? (int) ($torneo['torneo'] ?? 0) : 0;
+        $variantes = $activoId !== null && $activoId > 0 ? self::variantesCampeonatoActivas($pdo, $activoId) : [];
+
+        return [
+            'torneos_activos' => self::listarTorneosActivos($pdo),
+            'torneo_activo_id' => $activoId,
+            'torneo_jornada_id' => $tid > 0 ? $tid : null,
+            'torneo_jornada' => $tid > 0 ? [
+                'torneo' => $tid,
+                'nombre' => trim((string) ($torneo['nombre'] ?? '')),
+            ] : null,
+            'campeonato_variantes' => $variantes,
+            'permite_selector_campeonato' => count($variantes) >= 2,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private static function filaTorneoActivoFallback(\PDO $pdo): ?array
+    {
+        $stmt = $pdo->query(
+            'SELECT * FROM `' . self::T_T . '` WHERE `finalizado_en` IS NULL ORDER BY `fechator` DESC, `torneo` DESC LIMIT 1'
+        );
+        if ($stmt === false) {
+            return null;
+        }
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        return $row === false ? null : $row;
     }
 
     public static function assertTorneoActivo(\PDO $pdo, int $torneoId): void
@@ -180,12 +366,12 @@ class DelegadoMovimientoTorneo
      */
     public static function upsertNuevoAfiliado(\PDO $pdo, int $userId, int $torneoId): void
     {
-        $asocDelegado = \Auth::asociacionId();
+        $asocDelegado = Auth::asociacionId();
         if ($asocDelegado === null || $asocDelegado < 1) {
             throw new InvalidArgumentException('Delegado sin asociación.');
         }
         self::assertTorneoActivo($pdo, $torneoId);
-        \TorneoMovimientoLock::assertEdicionPermitida($pdo, $torneoId);
+        TorneoMovimientoLock::assertEdicionPermitida($pdo, $torneoId);
 
         $u = self::usuarioDelegadoAsociacion($pdo, $userId, $asocDelegado);
         $cedula = AfiliacionAtleta::normalizarCedula((string) ($u['cedula'] ?? ''));
@@ -265,7 +451,7 @@ class DelegadoMovimientoTorneo
         if (FvdSolicitudesDelegado::tienePendiente($pdo, 'afiliacion', $userId, $asociacionOrigenId, null)) {
             return;
         }
-        $del = \Auth::userId();
+        $del = Auth::userId();
         FvdSolicitudesDelegado::insertarPendiente(
             $pdo,
             'afiliacion',
@@ -290,7 +476,7 @@ class DelegadoMovimientoTorneo
         if (FvdSolicitudesDelegado::tienePendiente($pdo, 'carnet', $userId, $asociacionOrigenId, null)) {
             return;
         }
-        $del = \Auth::userId();
+        $del = Auth::userId();
         FvdSolicitudesDelegado::insertarPendiente(
             $pdo,
             'carnet',
@@ -316,7 +502,7 @@ class DelegadoMovimientoTorneo
         if (FvdSolicitudesDelegado::tienePendiente($pdo, 'traspaso', $userId, $asociacionOrigenDelegado, $asociacionDestinoId)) {
             return;
         }
-        $del = \Auth::userId();
+        $del = Auth::userId();
         FvdSolicitudesDelegado::insertarPendiente(
             $pdo,
             'traspaso',
@@ -335,9 +521,9 @@ class DelegadoMovimientoTorneo
      */
     public static function solicitarCarnet(\PDO $pdo, int $userId, int $torneoId, ?int $asociacionContextoAdmin = null): int
     {
-        $rol = \Auth::rol();
+        $rol = Auth::rol();
         if ($rol === 'delegado') {
-            $asocOper = \Auth::asociacionId();
+            $asocOper = Auth::asociacionId();
         } elseif ($rol === 'admingral') {
             $asocOper = $asociacionContextoAdmin;
         } else {
@@ -348,7 +534,7 @@ class DelegadoMovimientoTorneo
         }
         $asocOper = (int) $asocOper;
         self::assertTorneoActivo($pdo, $torneoId);
-        \TorneoMovimientoLock::assertEdicionPermitida($pdo, $torneoId);
+        TorneoMovimientoLock::assertEdicionPermitida($pdo, $torneoId);
 
         $u = self::usuarioDelegadoAsociacion($pdo, $userId, $asocOper);
         $cedula = AfiliacionAtleta::normalizarCedula((string) ($u['cedula'] ?? ''));
@@ -418,7 +604,7 @@ class DelegadoMovimientoTorneo
      */
     public static function solicitarTraspaso(\PDO $pdo, int $userId, int $torneoId, int $asociacionDestinoId): int
     {
-        $asocDelegado = \Auth::asociacionId();
+        $asocDelegado = Auth::asociacionId();
         if ($asocDelegado === null || $asocDelegado < 1) {
             throw new InvalidArgumentException('Delegado sin asociación.');
         }
@@ -426,7 +612,7 @@ class DelegadoMovimientoTorneo
             throw new InvalidArgumentException('Asociación destino inválida.');
         }
         self::assertTorneoActivo($pdo, $torneoId);
-        \TorneoMovimientoLock::assertEdicionPermitida($pdo, $torneoId);
+        TorneoMovimientoLock::assertEdicionPermitida($pdo, $torneoId);
 
         $stDest = $pdo->prepare('SELECT `id` FROM `' . self::T_A . '` WHERE `id` = :id LIMIT 1');
         $stDest->bindValue(':id', $asociacionDestinoId, \PDO::PARAM_INT);

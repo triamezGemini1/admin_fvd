@@ -4,6 +4,14 @@
 
 import { reporteEsc } from './reporte_tabla.js';
 
+/** Gastos operativos y resultado ing./gastos (solo administración general). */
+export function puedeFinanzasOperativasFvd(ctx) {
+    return !!(
+        ctx &&
+        (ctx.puede_finanzas_operativas_fvd === true || ctx.rol === 'admingral')
+    );
+}
+
 /**
  * @param {{ torneoId?: number, grupoId?: number }} [opts]
  */
@@ -77,6 +85,27 @@ export function hrefFinanzasAsociacion(asocId, opts = {}) {
     const id = parseInt(String(asocId), 10) || 0;
     if (id < 1) return 'finanzas_asociacion.html';
     return `finanzas_asociacion.html?id=${encodeURIComponent(String(id))}${qsTorneoGrupoFinanzas(opts)}`;
+}
+
+/** Detalle del resumen FVD: asociaciones de un torneo. */
+export function hrefResumenFinanzasDetalleTorneo(torneoId) {
+    const tid = parseInt(String(torneoId), 10) || 0;
+    if (tid < 1) return 'resumen_finanzas_fvd_detalle.html';
+    return `resumen_finanzas_fvd_detalle.html?torneo_id=${encodeURIComponent(String(tid))}`;
+}
+
+/** Reporte consolidado ingresos vs gastos por torneo. */
+export function hrefResultadoFinancieroTorneo(torneoId) {
+    const tid = parseInt(String(torneoId), 10) || 0;
+    if (tid < 1) return 'resultado_financiero_torneo.html';
+    return `resultado_financiero_torneo.html?torneo_id=${encodeURIComponent(String(tid))}`;
+}
+
+/** Formulario de gastos operativos de un torneo. */
+export function hrefGastosTorneo(torneoId) {
+    const tid = parseInt(String(torneoId), 10) || 0;
+    if (tid < 1) return 'gastos_torneo.html';
+    return `gastos_torneo.html?torneo_id=${encodeURIComponent(String(tid))}`;
 }
 
 /**

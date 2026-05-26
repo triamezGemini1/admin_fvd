@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FVD — Administrador de inscripciones</title>
+    <link rel="icon" href="img/logonvofvd.ico" type="image/x-icon">
+    <link rel="stylesheet" href="dist/assets/css/main.css">
+</head>
+<body class="inscripciones-body ins-admin-body admin-fvd-panel ag-informe-report ag-fvd-report-page">
+    <header class="main-header ins-admin-no-print">
+        <div class="brand-container">
+            <a href="index.php"><img src="img/fvd-portal-logo.png" alt="Federación Venezolana de Dominó" class="main-logo"></a>
+            <p class="fvd-header-title">FEDERACION VENEZOLANA DE DOMINO</p>
+        </div>
+        <nav id="ins-admin-nav" class="main-nav-actions">
+            <a href="panel.html" class="btn-secondary btn-sm">Panel</a>
+            <a href="inscripciones.html" class="btn-secondary btn-sm">Inscripción en sitio</a>
+        </nav>
+    </header>
+
+    <div id="delegado-torneos-context" class="delegado-torneos-context is-hidden ins-admin-no-print" aria-label="Torneos activos"></div>
+
+    <main class="inscripciones-main ins-admin-main">
+        <div id="ins-admin-gate" class="inscripciones-gate is-hidden"></div>
+        <div id="ins-admin-root" class="is-hidden">
+            <div class="ag-inf-sheet ag-fvd-reporte-hoja ins-admin-sheet">
+                <header class="ins-admin-head ins-admin-no-print">
+                    <div class="ins-admin-head-top">
+                        <div>
+                            <h1 class="ag-inf-report-title">Administrador de inscripciones</h1>
+                            <p id="ins-admin-meta" class="ag-muted ag-inf-report-lead">Cargando…</p>
+                        </div>
+                        <div id="ins-admin-stats" class="ins-stats-hero" aria-label="Inscritos por género">
+                            <span class="ins-gen-badge ins-gen-badge--total ins-gen-badge--lg"><strong id="ins-admin-stat-total">0</strong> Total</span>
+                            <span class="ins-gen-badge ins-gen-badge--m ins-gen-badge--lg"><strong id="ins-admin-stat-hombres">0</strong> Hombres</span>
+                            <span class="ins-gen-badge ins-gen-badge--f ins-gen-badge--lg"><strong id="ins-admin-stat-mujeres">0</strong> Mujeres</span>
+                        </div>
+                    </div>
+                    <div class="ins-admin-toolbar">
+                        <label class="ins-admin-filter">
+                            <span>Buscar</span>
+                            <input type="search" id="ins-admin-filter" placeholder="Nombre, cédula, carnet, email…" autocomplete="off">
+                        </label>
+                        <a href="inscripciones.html" class="btn-primary btn-sm" id="ins-admin-btn-ingreso">+ Nuevo ingreso</a>
+                        <button type="button" class="btn-secondary btn-sm" id="ins-admin-btn-pdf">Exportar PDF</button>
+                        <button type="button" class="btn-secondary btn-sm" id="ins-admin-btn-print">Imprimir</button>
+                    </div>
+                </header>
+
+                <div class="ag-fvd-reporte-datos ins-admin-table-wrap">
+                    <table class="fvd-table ins-admin-table" id="ins-admin-table">
+                        <thead>
+                            <tr>
+                                <th class="ins-admin-col-num">#</th>
+                                <th class="ins-admin-col-foto">Foto</th>
+                                <th class="ins-admin-col-carnet">Carnet</th>
+                                <th>Nombre</th>
+                                <th>Cédula</th>
+                                <th>Teléfono</th>
+                                <th>Email</th>
+                                <th class="ins-admin-col-acc ins-admin-no-print">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ins-admin-tbody">
+                            <tr><td colspan="8" class="ins-sitio-empty">Cargando inscritos…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="ins-admin-no-print">
+        <p>&copy; <span data-fvd-year></span> Federación Venezolana de Dominó — Portal administrativo</p>
+    </footer>
+
+    <dialog id="ins-admin-edit-dlg" class="ins-edit-dialog ins-admin-no-print">
+        <form method="dialog" id="ins-admin-edit-form" class="ins-edit-form">
+            <h2 class="ins-edit-title">Editar inscrito</h2>
+            <div class="ins-admin-edit-preview">
+                <img id="ins-admin-edit-foto" class="ins-admin-thumb" alt="" width="72" height="72" hidden>
+                <div>
+                    <p id="ins-admin-edit-nombre" class="ins-edit-nombre"></p>
+                    <p id="ins-admin-edit-carnet" class="ag-muted"></p>
+                </div>
+            </div>
+            <label class="ins-edit-label">
+                Teléfono
+                <input type="tel" id="ins-admin-edit-celular" maxlength="20" autocomplete="tel">
+            </label>
+            <label class="ins-edit-label">
+                Email
+                <input type="email" id="ins-admin-edit-email" maxlength="120" autocomplete="email">
+            </label>
+            <div class="ins-edit-actions">
+                <button type="submit" class="btn-primary btn-sm">Guardar</button>
+                <button type="button" class="btn-secondary btn-sm ins-admin-btn-cancel" id="ins-admin-edit-cancel">Cancelar</button>
+                <button type="button" class="btn-secondary btn-sm ins-admin-icon-btn ins-admin-icon-btn--danger reporte-btn-ic" id="ins-admin-edit-retirar" title="Retirar inscripción" aria-label="Retirar inscripción"><span class="reporte-btn-ic-sym" aria-hidden="true">🗑</span></button>
+            </div>
+            <p id="ins-admin-edit-msg" class="form-msg ins-sitio-msg" style="display:none"></p>
+        </form>
+    </dialog>
+
+    <dialog id="ins-admin-cambiar-dlg" class="ins-edit-dialog ins-admin-no-print">
+        <form method="dialog" id="ins-admin-cambiar-form" class="ins-edit-form">
+            <h2 class="ins-edit-title">Cambiar jugador</h2>
+            <p id="ins-admin-cambiar-actual" class="ag-muted"></p>
+            <p class="ins-sitio-hint">Busque por cédula al atleta que reemplazará al inscrito actual. Se retirará el participante actual y se inscribirá el nuevo (solo torneos individuales).</p>
+            <label class="ins-edit-label">
+                Cédula del nuevo atleta
+                <input type="text" id="ins-admin-cambiar-cedula" maxlength="20" autocomplete="off" placeholder="Ej. V12345678">
+            </label>
+            <p id="ins-admin-cambiar-nombre" class="ins-edit-nombre"></p>
+            <input type="hidden" id="ins-admin-cambiar-user-id" value="">
+            <div class="ins-edit-actions">
+                <button type="submit" class="btn-primary btn-sm" id="ins-admin-cambiar-confirm" disabled>Confirmar cambio</button>
+                <button type="button" class="btn-secondary btn-sm ins-admin-btn-cancel" id="ins-admin-cambiar-cancel">Cancelar</button>
+            </div>
+            <p id="ins-admin-cambiar-msg" class="form-msg ins-sitio-msg" style="display:none"></p>
+        </form>
+    </dialog>
+
+    <dialog id="ins-admin-retirar-dlg" class="ins-edit-dialog ins-admin-no-print">
+        <form method="dialog" id="ins-admin-retirar-form" class="ins-edit-form">
+            <h2 class="ins-edit-title">Retirar inscripción</h2>
+            <p id="ins-admin-retirar-nombre" class="ins-edit-nombre"></p>
+            <p class="ag-muted">El atleta dejará de figurar como inscrito en este torneo. Esta acción puede revertirse inscribiéndolo de nuevo.</p>
+            <div class="ins-edit-actions">
+                <button type="button" class="btn-primary btn-sm ins-admin-icon-btn ins-admin-icon-btn--danger reporte-btn-ic" id="ins-admin-retirar-confirm" title="Confirmar retiro" aria-label="Confirmar retiro"><span class="reporte-btn-ic-sym" aria-hidden="true">🗑</span> Confirmar</button>
+                <button type="button" class="btn-secondary btn-sm ins-admin-btn-cancel" id="ins-admin-retirar-cancel">Cancelar</button>
+            </div>
+            <p id="ins-admin-retirar-msg" class="form-msg ins-sitio-msg" style="display:none"></p>
+        </form>
+    </dialog>
+
+    <script type="module" src="src/js/inscripciones_admin.js"></script>
+</body>
+</html>

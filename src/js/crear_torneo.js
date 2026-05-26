@@ -2,6 +2,10 @@
  * Crear torneo: vista previa afiche, envío FormData → api/crud_torneos.php.
  * Acceso solo si auth_context.capabilities.torneos.create === true.
  */
+import { initFvdReportPage } from './fvd_report_page.js';
+import { initDelegadoTorneosBar, persistJornadaDesdeAuth } from './delegado_torneos_bar.js';
+
+initFvdReportPage();
 
 const API_TORNEOS = 'api/crud_torneos.php';
 
@@ -29,6 +33,10 @@ async function verificarPuedeCrearTorneo() {
             showState(false, true, false);
             return false;
         }
+        persistJornadaDesdeAuth(ctx);
+        void initDelegadoTorneosBar({
+            showWhen: (a) => a.logged && a.rol === 'admingral',
+        });
         showState(false, false, true);
         return true;
     } catch (e) {

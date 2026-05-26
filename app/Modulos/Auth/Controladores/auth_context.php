@@ -7,6 +7,9 @@ require_once FVD_ROOT . '/Database.php';
 require_once FVD_ROOT . '/app/Auth.php';
 require_once FVD_ROOT . '/app/AdminPolicy.php';
 require_once FVD_ROOT . '/app/AdminAsociacion.php';
+require_once FVD_ROOT . '/app/Modulos/Delegados/Modelos/DelegadoMovimientoTorneo.php';
+
+use Fvd\Modulos\Delegados\Modelos\DelegadoMovimientoTorneo;
 
 header('Content-Type: application/json; charset=UTF-8');
 
@@ -26,6 +29,12 @@ if ($pdo === null) {
         'capabilities' => null,
         'pendientes_traspaso_inscripcion' => 0,
         'supervision_pendientes' => null,
+        'torneos_activos' => [],
+        'torneo_activo_id' => null,
+        'torneo_jornada_id' => null,
+        'torneo_jornada' => null,
+        'campeonato_variantes' => [],
+        'permite_selector_campeonato' => false,
     ]);
     exit;
 }
@@ -42,6 +51,25 @@ $asocId = $logged ? Auth::asociacionId() : null;
 $capabilities = $puedePanel ? AdminPolicy::capabilities() : null;
 
 $puedeAfiliar = $logged && is_array($capabilities) && ($capabilities['usuarios']['create'] ?? false);
+$puedeFinanzasOperativasFvd = $logged && AdminPolicy::puedeVerFinanzasOperativasFvd();
+$puedeEstadoCuentaAsociacion =
+    $logged && $puedePanel && ($rol === 'admingral' || $rol === 'delegado');
+
+$torneosActivos = [];
+$torneoActivoId = null;
+$torneoJornadaId = null;
+$torneoJornada = null;
+$campeonatoVariantes = [];
+$permiteSelectorCampeonato = false;
+if ($logged && $puedePanel) {
+    $jornada = DelegadoMovimientoTorneo::bootstrapJornada($pdo);
+    $torneosActivos = $jornada['torneos_activos'];
+    $torneoActivoId = $jornada['torneo_activo_id'];
+    $torneoJornadaId = $jornada['torneo_jornada_id'];
+    $torneoJornada = $jornada['torneo_jornada'];
+    $campeonatoVariantes = $jornada['campeonato_variantes'];
+    $permiteSelectorCampeonato = $jornada['permite_selector_campeonato'];
+}
 
 if (session_status() === PHP_SESSION_ACTIVE) {
     session_write_close();
@@ -60,14 +88,25 @@ if ($logged && $rol === 'admingral') {
 }
 
 $asociacionActiva = null;
-if ($logged && $rol === 'delegado' && $asocId !== null && $asocId > 0) {
+if ($logged && $asocId !== null && $asocId > 0) {
     $ar = AdminAsociacion::obtener($pdo, (int) $asocId);
     if (is_array($ar)) {
+        $delNom = '';
+        $stDel = $pdo->prepare(
+            'SELECT nombre FROM usuarios WHERE asociacion_id = :aid AND role = :rol AND status IN (1, 9) ORDER BY id ASC LIMIT 1'
+        );
+        $stDel->bindValue(':aid', (int) $asocId, \PDO::PARAM_INT);
+        $stDel->bindValue(':rol', 'delegado', \PDO::PARAM_STR);
+        $stDel->execute();
+        $rd = $stDel->fetch(\PDO::FETCH_ASSOC);
+        if ($rd !== false) {
+            $delNom = trim((string) ($rd['nombre'] ?? ''));
+        }
         $asociacionActiva = [
             'id' => (int) ($ar['id'] ?? $asocId),
             'nombre' => trim((string) ($ar['nombre'] ?? '')),
             'logo' => trim((string) ($ar['logo'] ?? '')),
-            'delegado' => trim((string) ($ar['delegado'] ?? '')),
+            'delegado' => $delNom,
         ];
     }
 }
@@ -78,9 +117,17 @@ echo json_encode([
     'puede_crear_torneo' => $puedeCrear,
     'puede_panel_admin' => $puedePanel,
     'puede_afiliar_atleta' => $puedeAfiliar,
+    'puede_finanzas_operativas_fvd' => $puedeFinanzasOperativasFvd,
+    'puede_estado_cuenta_asociacion' => $puedeEstadoCuentaAsociacion,
     'asociacion_id' => $asocId,
     'asociacion_activa' => $asociacionActiva,
     'capabilities' => $capabilities,
     'pendientes_traspaso_inscripcion' => $pendTraspasoInscripcion,
     'supervision_pendientes' => $supervisionPendientes,
+    'torneos_activos' => $torneosActivos,
+    'torneo_activo_id' => $torneoActivoId,
+    'torneo_jornada_id' => $torneoJornadaId,
+    'torneo_jornada' => $torneoJornada,
+    'campeonato_variantes' => $campeonatoVariantes,
+    'permite_selector_campeonato' => $permiteSelectorCampeonato,
 ]);

@@ -11,7 +11,8 @@ import {
     reporteSliceCliente,
     htmlFvdTableShell,
 } from './reporte_tabla.js';
-import { mountPortalPerfilHeader } from './portal_perfil_header.js';
+import { initFvdReportPage } from './fvd_report_page.js';
+import { initDelegadoTorneosBar, persistJornadaDesdeAuth } from './delegado_torneos_bar.js';
 import {
     htmlGruposInformeAcordeon,
     htmlReporteAsociacionesPorTorneo,
@@ -22,7 +23,6 @@ import {
 import {
     hrefInformeAsociacion,
     hrefReporteAsociacionesTorneo,
-    hrefReporteParticipacion,
 } from './finanzas_reporte_nav.js';
 import {
     guardarTorneoFinanzas,
@@ -112,6 +112,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         history.replaceState(null, '', u0.toString());
     }
     const { res, data } = await fetchJson('api/auth_context.php');
+    if (res.ok && data.logged) persistJornadaDesdeAuth(data);
     const mine = data.asociacion_id != null ? parseInt(String(data.asociacion_id), 10) : 0;
     const puedeFin =
         res.ok &&
@@ -394,7 +395,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         </div>
         <p class="ag-fin-asoc-links">
             <a class="btn-secondary btn-sm" href="${hrefReporteAsociacionesTorneo({ asocId: id })}">Reporte por torneo</a>
-            <a class="btn-secondary btn-sm" href="${hrefReporteParticipacion()}">Participación (columnas)</a>
             <a class="btn-secondary btn-sm" href="${hrefInformeAsociacion(id, { torneoId: torneoUrl > 0 ? torneoUrl : torneoVista, grupoId: grupoVista })}">Desglose por renglón</a>
             ${puedeGestionarCargos ? `<a class="btn-secondary btn-sm" href="#fin-aso-cargos">Registrar cargo</a>` : ''}
             ${torneoUrl > 0 || grupoVista > 0 ? `<a class="btn-secondary btn-sm" href="finanzas_asociacion.html?id=${encodeURIComponent(String(id))}&consolidar_campeonato=1">Vista acordeón (todos)</a>` : ''}
@@ -554,5 +554,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     render();
     document.getElementById('fin-asoc-print')?.addEventListener('click', () => window.print());
-    mountPortalPerfilHeader(document.getElementById('main-nav'));
+    initFvdReportPage();
+    const { res: ra, data: da } = await fetchJson('api/auth_context.php');
+    if (ra.ok && da.logged) persistJornadaDesdeAuth(da);
+    void initDelegadoTorneosBar();
 });

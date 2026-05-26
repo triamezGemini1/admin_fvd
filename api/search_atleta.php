@@ -5,8 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/inscripciones_common.php';
 require_once dirname(__DIR__) . '/app/AdminPolicy.php';
 
-$asocParam = isset($_GET['asociacion_id']) ? (int) $_GET['asociacion_id'] : null;
-$ctx = inscripciones_init_con_asociacion($asocParam !== null && $asocParam > 0 ? $asocParam : null);
+$ctx = inscripciones_init_asociacion_activa();
 $pdo = $ctx['pdo'];
 $asoc = $ctx['asociacion_id'];
 
@@ -19,11 +18,10 @@ if (mb_strlen($q, 'UTF-8') < 3) {
     exit;
 }
 
-$t = InscripcionTorneo::torneoActivo($pdo);
+$t = inscripciones_resolver_torneo_jornada($pdo);
 $tid = $t !== null ? (int) $t['torneo'] : 0;
-$filtroAsoc = Auth::rol() === 'delegado' ? null : $asoc;
 $items = $tid > 0
-    ? InscripcionTorneo::buscarUsuariosParaAutocomplete($pdo, $q, $filtroAsoc, 15, $tid)
+    ? InscripcionTorneo::buscarUsuariosParaAutocomplete($pdo, $q, $asoc, 15, $tid)
     : [];
 
 echo json_encode(['ok' => true, 'items' => $items]);

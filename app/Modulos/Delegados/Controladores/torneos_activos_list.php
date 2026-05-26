@@ -23,6 +23,19 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
     exit;
 }
 
-$items = DelegadoMovimientoTorneo::listarTorneosActivos($pdo);
+$jornada = DelegadoMovimientoTorneo::bootstrapJornada($pdo);
 
-echo json_encode(['ok' => true, 'items' => $items]);
+$prefer = isset($_GET['torneo_id']) ? (int) $_GET['torneo_id'] : null;
+if ($prefer > 0) {
+    $jornada = DelegadoMovimientoTorneo::bootstrapJornada($pdo, $prefer);
+}
+
+echo json_encode([
+    'ok' => true,
+    'items' => $jornada['torneos_activos'],
+    'torneo_activo_id' => $jornada['torneo_activo_id'],
+    'torneo_jornada_id' => $jornada['torneo_jornada_id'],
+    'torneo_jornada' => $jornada['torneo_jornada'],
+    'campeonato_variantes' => $jornada['campeonato_variantes'],
+    'permite_selector_campeonato' => $jornada['permite_selector_campeonato'],
+]);

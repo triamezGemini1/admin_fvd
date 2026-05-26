@@ -148,6 +148,67 @@ class MovimientoTorneoContadores
     }
 
     /**
+     * Totales globales (sin agrupar por asociación) en uno o varios torneos, o en toda la nómina.
+     *
+     * @param list<int>|null $torneoIds si se indica, limita a esos torneos (prioridad sobre $torneoId)
+     *
+     * @return array{n_afiliacion: int, n_carnet: int, n_traspaso: int, n_anualidad: int, n_inscripcion: int}
+     */
+    public static function contadoresGlobales(
+        \PDO $pdo,
+        ?int $torneoId = null,
+        ?array $torneoIds = null,
+        ?int $asociacionId = null
+    ): array {
+        $sql = 'SELECT ' . self::sqlSelectAgregados('m') . ' FROM ' . self::T_MOV . ' m WHERE 1=1';
+        /** @var array<string, int> $bind */
+        $bind = [];
+
+        if ($asociacionId !== null && $asociacionId > 0) {
+            $sql .= ' AND m.asociacion_id = :aid';
+            $bind[':aid'] = $asociacionId;
+        }
+
+        if ($torneoIds !== null) {
+            $ids = [];
+            foreach ($torneoIds as $id) {
+                $n = (int) $id;
+                if ($n > 0) {
+                    $ids[$n] = true;
+                }
+            }
+            $ids = array_keys($ids);
+            if ($ids === []) {
+                return self::filaVacia();
+            }
+            if (count($ids) === 1) {
+                $sql .= ' AND m.torneo_id = :tid';
+                $bind[':tid'] = $ids[0];
+            } else {
+                $ph = [];
+                foreach ($ids as $i => $tid) {
+                    $key = ':t' . $i;
+                    $ph[] = $key;
+                    $bind[$key] = $tid;
+                }
+                $sql .= ' AND m.torneo_id IN (' . implode(',', $ph) . ')';
+            }
+        } elseif ($torneoId !== null && $torneoId > 0) {
+            $sql .= ' AND m.torneo_id = :tid';
+            $bind[':tid'] = $torneoId;
+        }
+
+        $stmt = $pdo->prepare($sql);
+        foreach ($bind as $k => $v) {
+            $stmt->bindValue($k, $v, \PDO::PARAM_INT);
+        }
+        $stmt->execute();
+        $r = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        return $r === false ? self::filaVacia() : self::normalizarFilaAgregada($r);
+    }
+
+    /**
      * @return array{n_afiliacion: int, n_carnet: int, n_traspaso: int, n_anualidad: int, n_inscripcion: int}
      */
     public static function contadoresTorneoAsociacion(\PDO $pdo, int $torneoId, int $asociacionId): array

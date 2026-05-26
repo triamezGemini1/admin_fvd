@@ -3,68 +3,152 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FVD — Inscripciones al torneo</title>
+    <title>FVD — Inscripciones asociación</title>
     <link rel="icon" href="img/logonvofvd.ico" type="image/x-icon">
     <link rel="stylesheet" href="dist/assets/css/main.css">
 </head>
-<body class="inscripciones-body">
+<body class="inscripciones-body ins-sitio-body ag-fvd-report-page">
     <header class="main-header">
         <div class="brand-container">
-            <a href="index.php"><img src="img/fvd-login-oficial.png" alt="Federación Venezolana de Dominó" class="main-logo"></a>
+            <a href="index.php"><img src="img/fvd-portal-logo.png" alt="Federación Venezolana de Dominó" class="main-logo"></a>
+            <p class="fvd-header-title">FEDERACION VENEZOLANA DE DOMINO</p>
         </div>
         <nav id="ins-main-nav" class="main-nav-actions">
-            <a href="index.php" class="btn-secondary" style="font-size: 0.85rem; padding: 0.45rem 0.9rem;">Inicio</a>
-            <a href="panel.html" class="btn-secondary" style="font-size: 0.85rem; padding: 0.45rem 0.9rem;">Administración</a>
+            <a href="index.php" class="btn-secondary">Inicio</a>
+            <a href="panel.html" class="btn-secondary">Administración</a>
         </nav>
     </header>
 
-    <main class="inscripciones-main">
+    <div id="delegado-torneos-context" class="delegado-torneos-context is-hidden" aria-label="Torneos activos"></div>
+
+    <main class="inscripciones-main ins-sitio-main">
         <div id="ins-gate" class="inscripciones-gate is-hidden"></div>
-        <div id="ins-root" class="inscripciones-root is-hidden">
-            <div class="inscripciones-card">
-                <h1 class="inscripciones-title">Inscripciones</h1>
-                <p id="ins-meta" class="inscripciones-meta" aria-live="polite"></p>
-
-                <aside id="ins-finance" class="ins-finance-gadget is-hidden" aria-live="polite"></aside>
-
-                <div id="ins-admin-asoc" class="inscripciones-admin-asoc is-hidden">
-                    <label class="inscripciones-field-inline">
-                        <span>Asociación (ID)</span>
-                        <input type="number" id="ins-asociacion-id" min="1" step="1" placeholder="Ej. 12" autocomplete="off">
-                    </label>
-                    <button type="button" id="ins-asoc-apply" class="btn-secondary">Cargar listas</button>
+        <div id="ins-root" class="ins-sitio-root is-hidden">
+            <div class="ins-sitio-card">
+                <div class="ins-sitio-head ins-sitio-head--centered">
+                    <div class="ins-sitio-head-actions ins-sitio-head-actions--start">
+                        <a href="panel.html" class="btn-secondary btn-sm">Retornar al panel</a>
+                    </div>
+                    <div class="ins-sitio-head-center">
+                        <h1 class="ins-sitio-title">
+                            <span>Inscripciones</span>
+                            <span id="ins-title-asoc" class="ins-sitio-title-asoc" aria-live="polite"></span>
+                        </h1>
+                        <div id="ins-stats-hero" class="ins-stats-hero" aria-label="Inscritos por género en el torneo activo">
+                            <span id="ins-asoc-code-badge" class="ins-asoc-code-badge is-hidden" title="Código de la asociación activa">Asoc.</span>
+                            <span class="ins-gen-badge ins-gen-badge--total ins-gen-badge--lg"><strong id="ins-stat-total">0</strong> Total</span>
+                            <span class="ins-gen-badge ins-gen-badge--m ins-gen-badge--lg"><strong id="ins-stat-hombres">0</strong> Hombres</span>
+                            <span class="ins-gen-badge ins-gen-badge--f ins-gen-badge--lg"><strong id="ins-stat-mujeres">0</strong> Mujeres</span>
+                        </div>
+                        <p id="ins-meta" class="ins-sitio-meta" aria-live="polite"></p>
+                    </div>
+                    <div class="ins-sitio-head-actions ins-sitio-head-actions--end">
+                        <a href="inscripciones_admin.html" class="btn-primary btn-sm" id="ins-btn-admin">Administrador</a>
+                        <button type="button" id="ins-btn-reporte-disp" class="btn-secondary btn-sm">Reporte disponibles</button>
+                        <button type="button" id="ins-btn-reporte" class="btn-secondary btn-sm">Reporte inscritos</button>
+                    </div>
                 </div>
 
-                <section class="inscripciones-top" aria-labelledby="ins-form-heading">
-                    <h2 id="ins-form-heading" class="inscripciones-subtitle">Formulario de inscripción</h2>
-                    <p class="inscripciones-hint">Búsqueda predictiva (mín. 3 caracteres). Elija de la lista para anclar el id. Tras «Inscribir», el formulario se limpia para la siguiente operación.</p>
-                    <div id="ins-form-zone" class="inscripciones-form-zone"></div>
-                    <p id="ins-form-msg" class="form-msg" style="display: none;"></p>
-                </section>
-
-                <section class="inscripciones-bottom" aria-labelledby="ins-cols-heading">
-                    <h2 id="ins-cols-heading" class="inscripciones-subtitle">Disponibles · Inscritos</h2>
-                    <p class="inscripciones-two-col-lead">Dos columnas fijas: elegibles por género del torneo (lista izquierda) frente a inscritos con indicadores de movimiento (derecha).</p>
-                    <label class="inscripciones-filter">
-                        <span>Filtrar listas</span>
-                        <input type="search" id="ins-filter-lists" placeholder="Nombre, cédula, email…" autocomplete="off">
-                    </label>
-                    <div class="inscripciones-columns">
-                        <div class="inscripciones-col">
-                            <div class="inscripciones-col-head">Disponibles</div>
-                            <p class="inscripciones-col-lead">Usuarios de la asociación acordes al género del torneo y sin inscripción en este evento (rango de edad: pendiente en datos del torneo).</p>
-                            <ul id="ins-list-disponibles" class="inscripciones-ul"></ul>
-                        </div>
-                        <div class="inscripciones-col">
-                            <div class="inscripciones-col-head">Inscritos</div>
-                            <p class="inscripciones-col-lead">Registrados en movimiento de torneo con inscripción activa.</p>
-                            <ul id="ins-list-inscritos" class="inscripciones-ul"></ul>
+                <div class="ins-sitio-search-card">
+                    <p class="ins-sitio-hint">
+                        Búsqueda por cédula o ID FVD. Clic en <strong>disponibles</strong> para inscribir;
+                        clic en <strong>inscritos</strong> para editar teléfono o retirar.
+                    </p>
+                    <div class="ins-sitio-fila ins-sitio-fila--busqueda" id="ins-sitio-linea-busqueda">
+                        <label class="ins-sitio-field ins-sitio-field--nac">
+                            <span>Nacionalidad</span>
+                            <input type="text" id="ins-nacionalidad" value="V" maxlength="1" placeholder="V" autocomplete="off" title="V, E, J o P">
+                        </label>
+                        <label class="ins-sitio-field ins-sitio-field--cedula">
+                            <span>Cédula / ID / nombre</span>
+                            <input type="text" id="ins-input-cedula" placeholder="Números, ID o nombre" maxlength="80" autocomplete="off" spellcheck="false">
+                        </label>
+                        <label class="ins-sitio-field ins-sitio-field--nombre is-hidden" id="wrap_nombre_busqueda">
+                            <span>Atleta</span>
+                            <input type="text" id="ins-input-nombre-res" class="ins-sitio-readonly ins-sitio-readonly--nombre" readonly placeholder="Nombre encontrado">
+                        </label>
+                        <div class="ins-sitio-field ins-sitio-field--tools">
+                            <span class="ins-sitio-field-label">Acción</span>
+                            <div class="ins-sitio-acciones-inline">
+                                <button type="button" class="btn-primary btn-sm" id="ins-btn-inscribir-busqueda" disabled>Inscribir</button>
+                                <button type="button" class="btn-secondary btn-sm is-hidden" id="ins-btn-otra-busqueda" title="Otra búsqueda">↺</button>
+                            </div>
                         </div>
                     </div>
+                    <p id="ins-form-msg" class="form-msg ins-sitio-msg" style="display: none;"></p>
+                    <input type="hidden" id="ins-busqueda-user-id" value="">
+                </div>
+
+                <section id="ins-form-zone-wrap" class="ins-sitio-form-extra is-hidden" aria-labelledby="ins-form-heading">
+                    <h2 id="ins-form-heading" class="ins-sitio-subtitle">Inscripción parejas / equipos</h2>
+                    <div id="ins-form-zone" class="inscripciones-form-zone"></div>
                 </section>
+
+                <div class="ins-sitio-columns">
+                    <div class="ins-sitio-col">
+                        <div class="ins-sitio-panel-head ins-sitio-panel-head--disp">
+                            <span>Atletas disponibles</span>
+                            <span class="ins-sitio-badge" id="count_disponibles">0</span>
+                        </div>
+                        <div class="ins-sitio-panel-body">
+                            <table class="ins-sitio-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nombre</th>
+                                        <th>Cédula</th>
+                                        <th>Carnet</th>
+                                        <th>Teléfono</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody_disponibles" data-raw="" data-grupos=""></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="ins-sitio-col">
+                        <div class="ins-sitio-panel-head ins-sitio-panel-head--insc">
+                            <span>Inscritos</span>
+                            <span class="ins-sitio-badge" id="count_inscritos">0</span>
+                        </div>
+                        <div class="ins-sitio-panel-body">
+                            <table class="ins-sitio-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nombre</th>
+                                        <th>Cédula</th>
+                                        <th>Carnet</th>
+                                        <th>Teléfono</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody_inscritos" data-raw=""></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <label class="ins-sitio-filter">
+                    <span>Filtrar tablas</span>
+                    <input type="search" id="ins-filter-lists" placeholder="Nombre, cédula…" autocomplete="off">
+                </label>
             </div>
         </div>
     </main>
+
+    <dialog id="ins-edit-dialog" class="ins-edit-dialog">
+        <form method="dialog" id="ins-edit-form" class="ins-edit-form">
+            <h2 class="ins-edit-title">Editar inscrito</h2>
+            <p id="ins-edit-nombre" class="ins-edit-nombre"></p>
+            <label class="ins-edit-label">
+                Teléfono
+                <input type="tel" id="ins-edit-celular" maxlength="20" autocomplete="tel" placeholder="Ej. 04141234567">
+            </label>
+            <div class="ins-edit-actions">
+                <button type="submit" class="btn-primary btn-sm" id="ins-edit-guardar">Guardar teléfono</button>
+                <button type="button" class="btn-secondary btn-sm" id="ins-edit-retirar">Retirar</button>
+                <button type="button" class="btn-secondary btn-sm" id="ins-edit-cerrar">Cerrar</button>
+            </div>
+            <p id="ins-edit-msg" class="form-msg ins-sitio-msg" style="display:none"></p>
+        </form>
+    </dialog>
 
     <footer>
         <p>&copy; 2024 Federación Venezolana de Dominó</p>

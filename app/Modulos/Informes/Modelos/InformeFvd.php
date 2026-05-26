@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Fvd\Modulos\Informes\Modelos;
 
 use Fvd\Modulos\Finanzas\Modelos\FinanzaFvd;
+use Fvd\Modulos\Finanzas\Modelos\FinanzaGastoTorneo;
 use Fvd\Modulos\Finanzas\Modelos\MovimientoTorneoContadores;
 use Fvd\Modulos\Torneos\Modelos\TorneoCampeonato;
 
@@ -1027,6 +1028,444 @@ class InformeFvd
         }
 
         return $t;
+    }
+
+    /**
+     * Metadatos de renglón financiero (orden de presentación).
+     *
+     * @return list<array{codigo: string, etiqueta: string, n_key: string, tarifa_key: string}>
+     */
+    public static function metaRenglonesFinanzas(): array
+    {
+        return [
+            ['codigo' => 'afiliacion', 'etiqueta' => 'Afiliación', 'n_key' => 'n_afiliacion', 'tarifa_key' => 'afiliacion'],
+            ['codigo' => 'anualidad', 'etiqueta' => 'Anualidad', 'n_key' => 'n_anualidad', 'tarifa_key' => 'anualidad'],
+            ['codigo' => 'carnet', 'etiqueta' => 'Carnet', 'n_key' => 'n_carnet', 'tarifa_key' => 'carnet'],
+            ['codigo' => 'traspaso', 'etiqueta' => 'Traspaso', 'n_key' => 'n_traspaso', 'tarifa_key' => 'traspaso'],
+            ['codigo' => 'inscripcion', 'etiqueta' => 'Inscripción', 'n_key' => 'n_inscripcion', 'tarifa_key' => 'inscripcion'],
+        ];
+    }
+
+    /**
+     * @param array{n_afiliacion: int, n_carnet: int, n_traspaso: int, n_anualidad: int, n_inscripcion: int} $c
+     * @param array{afiliacion: float, carnet: float, traspaso: float, anualidad: float, inscripcion: float} $units
+     *
+     * @return list<array{codigo: string, etiqueta: string, cantidad: int, tarifa_eur: float, monto_eur: float}>
+     */
+    public static function renglonesDesdeContadores(array $c, array $units): array
+    {
+        $montos = MovimientoTorneoContadores::montosPorTarifaYContadores($c, $units);
+        $out = [];
+        foreach (self::metaRenglonesFinanzas() as $m) {
+            $qty = (int) ($c[$m['n_key']] ?? 0);
+            $tar = round((float) ($units[$m['tarifa_key']] ?? 0), 2);
+            $cod = $m['codigo'];
+            $out[] = [
+                'codigo' => $cod,
+                'etiqueta' => $m['etiqueta'],
+                'cantidad' => $qty,
+                'tarifa_eur' => $tar,
+                'monto_eur' => round((float) ($montos[$cod] ?? 0), 2),
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Resumen FVD por periodo: totales por evento (renglón) y desglose por asociación.
+     *
+     * @return array<string, mixed>
+     */
+    public static function resumenFinanzasPeriodo(
+        \PDO $pdo,
+        ?int $torneoId = null,
+        ?int $grupoEventoId = null,
+        ?int $soloAsociacionId = null
+    ): array {
+        $torneoIds = null;
+        $modo = 'periodo_completo';
+        $etiqueta = 'Periodo completo — todos los torneos';
+        $torneoFiltro = null;
+        $grupoMeta = null;
+        $asocFiltro = null;
+        if ($soloAsociacionId !== null && $soloAsociacionId > 0) {
+            $stAs = $pdo->prepare('SELECT id, nombre FROM ' . self::T_ASOC . ' WHERE id = :id LIMIT 1');
+            $stAs->bindValue(':id', $soloAsociacionId, \PDO::PARAM_INT);
+            $stAs->execute();
+            $ar = $stAs->fetch(\PDO::FETCH_ASSOC);
+            if ($ar !== false) {
+                $asocFiltro = [
+                    'id' => (int) ($ar['id'] ?? 0),
+                    'nombre' => (string) ($ar['nombre'] ?? ''),
+                ];
+            }
+        }
+
+        if ($grupoEventoId !== null && $grupoEventoId > 0) {
+            $modo = 'campeonato';
+            $torneoIds = [];
+            foreach (TorneoCampeonato::torneosDeGrupo($pdo, $grupoEventoId) as $tr) {
+                $tid = (int) ($tr['torneo'] ?? 0);
+                if ($tid > 0) {
+                    $torneoIds[] = $tid;
+                }
+            }
+            $estruct = self::torneosSelectorEstructurado($pdo);
+            foreach ($estruct['campeonatos'] as $camp) {
+                if ((int) ($camp['grupo_evento_id'] ?? 0) === $grupoEventoId) {
+                    $etiqueta = (string) ($camp['etiqueta'] ?? 'Campeonato #' . $grupoEventoId);
+                    break;
+                }
+            }
+            if ($etiqueta === 'Periodo completo — todos los torneos') {
+                $etiqueta = 'Campeonato #' . $grupoEventoId;
+            }
+            $grupoMeta = ['grupo_evento_id' => $grupoEventoId, 'etiqueta' => $etiqueta, 'n_torneos' => count($torneoIds)];
+        } elseif ($torneoId !== null && $torneoId > 0) {
+            $modo = 'torneo';
+            $tf = self::torneoFilaPorId($pdo, $torneoId);
+            $torneoFiltro = self::torneoJsonDesdeFila($tf);
+            $etiqueta = $torneoFiltro !== null
+                ? (string) ($torneoFiltro['nombre'] ?? 'Torneo #' . $torneoId)
+                : 'Torneo #' . $torneoId;
+        }
+
+        $aidScope = $soloAsociacionId !== null && $soloAsociacionId > 0 ? $soloAsociacionId : null;
+        $countsGlobal = MovimientoTorneoContadores::contadoresGlobales(
+            $pdo,
+            $modo === 'torneo' ? $torneoId : null,
+            $torneoIds,
+            $aidScope
+        );
+        if ($modo === 'campeonato' && $torneoIds !== null && $torneoIds !== []) {
+            $countsPorAsoc = MovimientoTorneoContadores::contadoresPorAsociacionTorneos($pdo, $torneoIds);
+        } elseif ($modo === 'torneo' && $torneoId > 0) {
+            $countsPorAsoc = MovimientoTorneoContadores::contadoresPorAsociacion($pdo, $torneoId);
+        } else {
+            $countsPorAsoc = MovimientoTorneoContadores::contadoresPorAsociacion($pdo, null);
+        }
+        if ($aidScope > 0 && $asocFiltro !== null) {
+            $etiqueta = $modo === 'periodo_completo'
+                ? 'Periodo completo — ' . $asocFiltro['nombre']
+                : $etiqueta . ' · ' . $asocFiltro['nombre'];
+        }
+
+        $units = MovimientoTorneoContadores::tarifaCostosMasReciente($pdo);
+        $renglones = self::renglonesDesdeContadores($countsGlobal, $units);
+        $totalNomina = MovimientoTorneoContadores::totalNominaDesdeMontos(
+            MovimientoTorneoContadores::montosPorTarifaYContadores($countsGlobal, $units)
+        );
+        $totalCantidad = 0;
+        foreach ($renglones as $r) {
+            $totalCantidad += (int) ($r['cantidad'] ?? 0);
+        }
+
+        if ($aidScope > 0) {
+            $stmt = $pdo->prepare('SELECT id, nombre, estatus, logo FROM ' . self::T_ASOC . ' WHERE id = :id LIMIT 1');
+            $stmt->bindValue(':id', $aidScope, \PDO::PARAM_INT);
+            $stmt->execute();
+            $asocs = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+        } else {
+            $stmt = $pdo->query('SELECT id, nombre, estatus, logo FROM ' . self::T_ASOC . ' ORDER BY nombre ASC');
+            $asocs = $stmt === false ? [] : ($stmt->fetchAll(\PDO::FETCH_ASSOC) ?: []);
+        }
+        $asociaciones = [];
+        foreach ($asocs as $a) {
+            $id = (int) ($a['id'] ?? 0);
+            if ($id < 1) {
+                continue;
+            }
+            if ($aidScope > 0 && $id !== $aidScope) {
+                continue;
+            }
+            $c = $countsPorAsoc[(string) $id] ?? MovimientoTorneoContadores::filaVacia();
+            $rengAsoc = self::renglonesDesdeContadores($c, $units);
+            $mNom = MovimientoTorneoContadores::montosPorTarifaYContadores($c, $units);
+            $totAsoc = MovimientoTorneoContadores::totalNominaDesdeMontos($mNom);
+            $qtyAsoc = 0;
+            foreach ($rengAsoc as $rr) {
+                $qtyAsoc += (int) ($rr['cantidad'] ?? 0);
+            }
+            if ($qtyAsoc < 1 && $totAsoc <= 0.0) {
+                continue;
+            }
+            $asociaciones[] = [
+                'id' => $id,
+                'nombre' => (string) ($a['nombre'] ?? ''),
+                'estatus' => $a['estatus'] ?? 0,
+                'logo' => $a['logo'] ?? null,
+                'renglones' => $rengAsoc,
+                'total_cantidad' => $qtyAsoc,
+                'total_nomina_eur' => $totAsoc,
+            ];
+        }
+
+        return [
+            'periodo' => [
+                'modo' => $modo,
+                'etiqueta' => $etiqueta,
+                'torneo_id' => $modo === 'torneo' ? $torneoId : null,
+                'grupo_evento_id' => $modo === 'campeonato' ? $grupoEventoId : null,
+                'torneo' => $torneoFiltro,
+                'campeonato' => $grupoMeta,
+                'asociacion_id' => $aidScope,
+                'asociacion' => $asocFiltro,
+            ],
+            'tarifas_eur' => $units,
+            'renglones' => $renglones,
+            'total_cantidad' => $totalCantidad,
+            'total_nomina_eur' => $totalNomina,
+            'asociaciones' => $asociaciones,
+        ];
+    }
+
+    /**
+     * Una fila por torneo con cantidades y montos por evento (periodo / campeonato / asociación).
+     *
+     * @return array{
+     *   filas_torneos: list<array<string, mixed>>,
+     *   totales: array{renglones: list<array<string, mixed>>, total_cantidad: int, total_nomina_eur: float},
+     *   tarifas_eur: array<string, float>,
+     *   periodo: array<string, mixed>
+     * }
+     */
+    public static function resumenFinanzasFilasPorTorneo(
+        \PDO $pdo,
+        ?int $grupoEventoId = null,
+        ?int $soloAsociacionId = null
+    ): array {
+        $torneos = self::torneosConNominaParaSelector($pdo);
+        if ($soloAsociacionId !== null && $soloAsociacionId > 0) {
+            $torneos = self::torneosConMovimientoParaAsociacion($pdo, $soloAsociacionId);
+        }
+        if ($grupoEventoId !== null && $grupoEventoId > 0) {
+            $idsGrupo = [];
+            foreach (TorneoCampeonato::torneosDeGrupo($pdo, $grupoEventoId) as $tr) {
+                $tid = (int) ($tr['torneo'] ?? 0);
+                if ($tid > 0) {
+                    $idsGrupo[$tid] = true;
+                }
+            }
+            $torneos = array_values(array_filter(
+                $torneos,
+                static fn (array $t): bool => isset($idsGrupo[(int) ($t['torneo_id'] ?? 0)])
+            ));
+        }
+
+        $units = MovimientoTorneoContadores::tarifaCostosMasReciente($pdo);
+        $filasTorneos = [];
+        $sumCounts = MovimientoTorneoContadores::filaVacia();
+
+        foreach ($torneos as $meta) {
+            $tid = (int) ($meta['torneo_id'] ?? 0);
+            if ($tid < 1) {
+                continue;
+            }
+            $c = MovimientoTorneoContadores::contadoresGlobales($pdo, $tid, null, $soloAsociacionId);
+            foreach (array_keys($sumCounts) as $k) {
+                $sumCounts[$k] += (int) ($c[$k] ?? 0);
+            }
+            $renglones = self::renglonesDesdeContadores($c, $units);
+            $totM = MovimientoTorneoContadores::totalNominaDesdeMontos(
+                MovimientoTorneoContadores::montosPorTarifaYContadores($c, $units)
+            );
+            $totQ = 0;
+            foreach ($renglones as $rr) {
+                $totQ += (int) ($rr['cantidad'] ?? 0);
+            }
+            if ($totQ < 1 && $totM <= 0.0) {
+                continue;
+            }
+            $filasTorneos[] = [
+                'torneo_id' => $tid,
+                'nombre' => (string) ($meta['nombre'] ?? ''),
+                'fechator' => $meta['fechator'] ?? null,
+                'finalizado_en' => $meta['finalizado_en'] ?? null,
+                'renglones' => $renglones,
+                'total_cantidad' => $totQ,
+                'total_nomina_eur' => $totM,
+            ];
+        }
+
+        $renglonesTot = self::renglonesDesdeContadores($sumCounts, $units);
+        $totalNomina = MovimientoTorneoContadores::totalNominaDesdeMontos(
+            MovimientoTorneoContadores::montosPorTarifaYContadores($sumCounts, $units)
+        );
+        $totalCantidad = 0;
+        foreach ($renglonesTot as $r) {
+            $totalCantidad += (int) ($r['cantidad'] ?? 0);
+        }
+
+        $etiqueta = 'Periodo completo — todos los torneos';
+        $grupoMeta = null;
+        if ($grupoEventoId !== null && $grupoEventoId > 0) {
+            $estruct = self::torneosSelectorEstructurado($pdo);
+            foreach ($estruct['campeonatos'] as $camp) {
+                if ((int) ($camp['grupo_evento_id'] ?? 0) === $grupoEventoId) {
+                    $etiqueta = (string) ($camp['etiqueta'] ?? 'Campeonato #' . $grupoEventoId);
+                    break;
+                }
+            }
+            if ($etiqueta === 'Periodo completo — todos los torneos') {
+                $etiqueta = 'Campeonato #' . $grupoEventoId;
+            }
+            $grupoMeta = ['grupo_evento_id' => $grupoEventoId, 'etiqueta' => $etiqueta];
+        }
+        if ($soloAsociacionId !== null && $soloAsociacionId > 0) {
+            $st = $pdo->prepare('SELECT nombre FROM ' . self::T_ASOC . ' WHERE id = :id LIMIT 1');
+            $st->bindValue(':id', $soloAsociacionId, \PDO::PARAM_INT);
+            $st->execute();
+            $nom = (string) ($st->fetchColumn() ?: '');
+            if ($nom !== '') {
+                $etiqueta .= ' · ' . $nom;
+            }
+        }
+
+        return [
+            'periodo' => [
+                'modo' => $grupoEventoId > 0 ? 'campeonato' : 'periodo_completo',
+                'etiqueta' => $etiqueta,
+                'grupo_evento_id' => $grupoEventoId > 0 ? $grupoEventoId : null,
+                'campeonato' => $grupoMeta,
+                'asociacion_id' => $soloAsociacionId > 0 ? $soloAsociacionId : null,
+            ],
+            'tarifas_eur' => $units,
+            'filas_torneos' => $filasTorneos,
+            'totales' => [
+                'renglones' => $renglonesTot,
+                'total_cantidad' => $totalCantidad,
+                'total_nomina_eur' => $totalNomina,
+            ],
+        ];
+    }
+
+    /** Porcentaje sobre base; null si base ≤ 0. */
+    public static function pctSobreBase(float $parte, float $base): ?float
+    {
+        if ($base <= 0.0) {
+            return null;
+        }
+
+        return round(100 * $parte / $base, 1);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $renglones
+     *
+     * @return list<array<string, mixed>>
+     */
+    public static function renglonesConPctIngreso(array $renglones, float $ingresoEur): array
+    {
+        return array_map(
+            static function (array $r) use ($ingresoEur): array {
+                $m = (float) ($r['monto_eur'] ?? 0);
+                $r['pct_ingreso'] = self::pctSobreBase($m, $ingresoEur);
+
+                return $r;
+            },
+            $renglones
+        );
+    }
+
+    /**
+     * @param array{total_bs?: float, total_eur?: float, n?: int} $gastosTotales
+     *
+     * @return array{
+     *   ingresos_eur: float,
+     *   gastos_eur: float,
+     *   gastos_bs: float,
+     *   resultado_eur: float,
+     *   pct_gastos_ingreso: ?float,
+     *   pct_resultado_ingreso: ?float,
+     *   gastos_registros: int
+     * }
+     */
+    public static function cajaResultadoTorneo(float $ingresoEur, array $gastosTotales): array
+    {
+        $gEur = round((float) ($gastosTotales['total_eur'] ?? 0), 2);
+        $ing = round($ingresoEur, 2);
+        $res = round($ing - $gEur, 2);
+
+        return [
+            'ingresos_eur' => $ing,
+            'gastos_eur' => $gEur,
+            'gastos_bs' => round((float) ($gastosTotales['total_bs'] ?? 0), 2),
+            'resultado_eur' => $res,
+            'pct_gastos_ingreso' => self::pctSobreBase($gEur, $ing),
+            'pct_resultado_ingreso' => self::pctSobreBase($res, $ing),
+            'gastos_registros' => (int) ($gastosTotales['n'] ?? 0),
+        ];
+    }
+
+    /**
+     * Listado por torneo: ingresos (nómina), gastos operativos y resultado con %.
+     *
+     * @return array<string, mixed>
+     */
+    public static function resultadoFinancieroFilasPorTorneo(
+        \PDO $pdo,
+        ?int $grupoEventoId = null,
+        ?int $soloAsociacionId = null
+    ): array {
+        $base = self::resumenFinanzasFilasPorTorneo($pdo, $grupoEventoId, $soloAsociacionId);
+        $filas = [];
+        $sumGastosEur = 0.0;
+        $sumGastosBs = 0.0;
+        $sumGastosN = 0;
+        foreach ($base['filas_torneos'] as $row) {
+            $tid = (int) ($row['torneo_id'] ?? 0);
+            $gTot = FinanzaGastoTorneo::totalesPorTorneo($pdo, $tid);
+            $ing = (float) ($row['total_nomina_eur'] ?? 0);
+            $caja = self::cajaResultadoTorneo($ing, $gTot);
+            $sumGastosEur += $caja['gastos_eur'];
+            $sumGastosBs += $caja['gastos_bs'];
+            $sumGastosN += $caja['gastos_registros'];
+            $filas[] = array_merge($row, $caja, [
+                'renglones' => self::renglonesConPctIngreso($row['renglones'] ?? [], $ing),
+            ]);
+        }
+        $totIng = (float) ($base['totales']['total_nomina_eur'] ?? 0);
+        $cajaTot = self::cajaResultadoTorneo($totIng, [
+            'total_eur' => $sumGastosEur,
+            'total_bs' => $sumGastosBs,
+            'n' => $sumGastosN,
+        ]);
+        $base['filas_torneos'] = $filas;
+        $base['totales'] = array_merge($base['totales'], $cajaTot, [
+            'renglones' => self::renglonesConPctIngreso($base['totales']['renglones'] ?? [], $totIng),
+        ]);
+
+        return $base;
+    }
+
+    /**
+     * Desglose de un torneo: ingresos por concepto, gastos por concepto y líneas.
+     *
+     * @return array<string, mixed>
+     */
+    public static function resultadoFinancieroDetalleTorneo(
+        \PDO $pdo,
+        int $torneoId,
+        ?int $soloAsociacionId = null
+    ): array {
+        $resumen = self::resumenFinanzasPeriodo($pdo, $torneoId, null, $soloAsociacionId);
+        $ing = (float) ($resumen['total_nomina_eur'] ?? 0);
+        $gCons = FinanzaGastoTorneo::consolidadoPorConcepto($pdo, $torneoId, $ing);
+        $caja = self::cajaResultadoTorneo($ing, $gCons['totales']);
+
+        return [
+            'periodo' => $resumen['periodo'],
+            'tarifas_eur' => $resumen['tarifas_eur'],
+            'ingresos' => [
+                'renglones' => self::renglonesConPctIngreso($resumen['renglones'] ?? [], $ing),
+                'total_nomina_eur' => $ing,
+                'total_cantidad' => (int) ($resumen['total_cantidad'] ?? 0),
+            ],
+            'gastos' => $gCons,
+            'resultado' => $caja,
+            'asociaciones' => $resumen['asociaciones'] ?? [],
+        ];
     }
 
     /**

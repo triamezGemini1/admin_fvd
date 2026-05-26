@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FVD — Detalle finanzas por torneo</title>
+    <link rel="icon" href="img/logonvofvd.ico" type="image/x-icon">
+    <link rel="stylesheet" href="dist/assets/css/main.css">
+</head>
+<body class="admin-fvd-panel ag-fin-periodo-body ag-fvd-report-page">
+    <header class="main-header">
+        <div class="brand-container">
+            <a href="panel.html"><img src="img/fvd-portal-logo.png" alt="Federación Venezolana de Dominó" class="main-logo"></a>
+            <p class="fvd-header-title">FEDERACION VENEZOLANA DE DOMINO</p>
+        </div>
+        <nav id="main-nav" class="main-nav-actions">
+            <a href="resumen_finanzas_fvd.html" class="btn-secondary btn-sm">← Resumen periodo</a>
+            <a href="resultado_financiero_torneo.html" class="btn-secondary btn-sm" id="rfvd-det-resultado">Resultado</a>
+            <a href="gastos_torneo.html" class="btn-secondary btn-sm" id="rfvd-det-gastos">Gastos</a>
+            <a href="panel.html" class="btn-secondary btn-sm">Panel</a>
+            <button type="button" class="btn-secondary btn-sm" id="rfvd-det-btn-print">Imprimir</button>
+        </nav>
+    </header>
+
+    <div id="delegado-torneos-context" class="delegado-torneos-context is-hidden" aria-label="Torneos activos"></div>
+
+    <main class="ag-fin-periodo-main">
+        <div id="rfvd-det-gate" class="admin-gate-msg" style="display: none;"></div>
+        <div id="rfvd-det-app" style="display: none;">
+            <header class="ag-fin-periodo-head">
+                <h1 id="rfvd-det-title">Detalle por asociación</h1>
+                <p id="rfvd-det-lead" class="ag-muted">Cargando…</p>
+            </header>
+            <section class="ag-fin-periodo-section">
+                <div id="rfvd-det-body"></div>
+            </section>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Federación Venezolana de Dominó</p>
+    </footer>
+    <script type="module" src="src/js/resumen_finanzas_fvd_detalle.js"></script>
+</body>
+</html>

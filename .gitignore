@@ -29,6 +29,8 @@ Thumbs.db
 /uploads/**
 !/uploads/**/
 !/uploads/**/.gitkeep
+dist/assets/img/uploads/*
+!dist/assets/img/uploads/.gitkeep
 
 # Backups y dumps fuera de sql/migrations
 *.bak

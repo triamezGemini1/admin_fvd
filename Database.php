@@ -4,6 +4,12 @@
  * Conexión PDO a MySQL (base fvdmasteradmin según esquema del proyecto).
  * Credenciales: variables de entorno opcionales o valores por defecto WAMP.
  */
+if (!defined('FVD_ROOT')) {
+    define('FVD_ROOT', __DIR__);
+}
+require_once __DIR__ . '/app/Config/Env.php';
+\Fvd\Config\Env::load();
+
 class Database
 {
     private string $host;
@@ -19,11 +25,11 @@ class Database
         ?string $username = null,
         ?string $password = null
     ) {
-        $this->host = $host ?? getenv('FVD_DB_HOST') ?: '127.0.0.1';
-        $this->port = $port ?? getenv('FVD_DB_PORT') ?: '3306';
-        $this->dbName = $dbName ?? getenv('FVD_DB_DATABASE') ?: 'fvdmasteradmin';
-        $this->username = $username ?? getenv('FVD_DB_USERNAME') ?: 'root';
-        $this->password = $password ?? (getenv('FVD_DB_PASSWORD') !== false ? getenv('FVD_DB_PASSWORD') : '');
+        $this->host = $host ?? \Fvd\Config\Env::get('FVD_DB_HOST', '127.0.0.1') ?? '127.0.0.1';
+        $this->port = $port ?? \Fvd\Config\Env::get('FVD_DB_PORT', '3306') ?? '3306';
+        $this->dbName = $dbName ?? \Fvd\Config\Env::get('FVD_DB_DATABASE', 'fvdmasteradmin') ?? 'fvdmasteradmin';
+        $this->username = $username ?? \Fvd\Config\Env::get('FVD_DB_USERNAME', 'root') ?? 'root';
+        $this->password = $password ?? \Fvd\Config\Env::get('FVD_DB_PASSWORD', '') ?? '';
     }
 
     public function getConnection(): ?PDO

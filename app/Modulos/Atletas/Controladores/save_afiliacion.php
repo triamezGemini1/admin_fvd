@@ -10,6 +10,9 @@ require_once FVD_ROOT . '/app/Auth.php';
 require_once FVD_ROOT . '/app/AdminPolicy.php';
 
 use Fvd\Modulos\Atletas\Modelos\AfiliacionAtleta;
+use InvalidArgumentException;
+use RuntimeException;
+use Throwable;
 
 $database = new Database();
 $pdo = $database->getConnection();
