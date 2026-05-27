@@ -42,6 +42,7 @@ final class DatabaseConfig
         if ($url !== '') {
             self::$portalCache = self::parseDatabaseUrl($url, 'DB_PORTAL_URL');
             self::$portalCache['socket'] = trim(Env::get('FVD_DB_SOCKET', '') ?? '');
+            self::$portalCache = self::applySharedCredentials(self::$portalCache);
 
             return self::$portalCache;
         }
@@ -56,6 +57,7 @@ final class DatabaseConfig
             'charset' => 'utf8mb4',
             'source' => 'legacy',
         ];
+        self::$portalCache = self::applySharedCredentials(self::$portalCache);
 
         if (!Env::isProduction()) {
             self::$portalCache = self::applyLocalDevDefaults(self::$portalCache);
@@ -90,12 +92,18 @@ final class DatabaseConfig
             self::$personasCache = self::parseDatabaseUrl($url, 'DB_PERSONAS_URL');
             self::$personasCache['socket'] = trim(Env::get('FVD_PERSONA_DB_SOCKET', '') ?? '');
             self::$personasCache['table'] = trim(Env::get('FVD_PERSONA_DB_TABLE', 'dbo_persona') ?? 'dbo_persona');
+            self::$personasCache = self::applySharedCredentials(self::$personasCache);
 
             return self::$personasCache;
         }
 
+        $personaHost = trim(Env::get('FVD_PERSONA_DB_HOST', '') ?? '');
+        if ($personaHost === '') {
+            $personaHost = trim(Env::get('FVD_PERSONA_DB_DOMAIN', '') ?? '');
+        }
+
         self::$personasCache = [
-            'host' => trim(Env::get('FVD_PERSONA_DB_HOST', 'localhost') ?? 'localhost'),
+            'host' => $personaHost !== '' ? $personaHost : 'localhost',
             'port' => trim(Env::get('FVD_PERSONA_DB_PORT', '3306') ?? '3306'),
             'database' => trim(Env::get('FVD_PERSONA_DB_DATABASE', '') ?? ''),
             'username' => trim(Env::get('FVD_PERSONA_DB_USERNAME', '') ?? ''),
@@ -105,6 +113,7 @@ final class DatabaseConfig
             'table' => trim(Env::get('FVD_PERSONA_DB_TABLE', 'dbo_persona') ?? 'dbo_persona'),
             'source' => 'legacy',
         ];
+        self::$personasCache = self::applySharedCredentials(self::$personasCache);
 
         return self::$personasCache;
     }
@@ -231,6 +240,30 @@ final class DatabaseConfig
             || str_contains($user, 'su_usuario')
             || $pwd === 'su_contraseña'
             || str_contains($pwd, 'su_contraseña');
+    }
+
+    /**
+     * Usuario/clave compartidos entre ambas BD (mismo MySQL en dos dominios).
+     * Orden: valor específico del bloque → FVD_MYSQL_* → FVD_DB_* (portal).
+     *
+     * @param array<string, string> $cfg
+     * @return array<string, string>
+     */
+    private static function applySharedCredentials(array $cfg): array
+    {
+        $sharedUser = trim(Env::get('FVD_MYSQL_USERNAME', '') ?? '');
+        $sharedPass = Env::get('FVD_MYSQL_PASSWORD', '') ?? '';
+        $portalUser = trim(Env::get('FVD_DB_USERNAME', '') ?? '');
+        $portalPass = Env::get('FVD_DB_PASSWORD', '') ?? '';
+
+        if ($cfg['username'] === '') {
+            $cfg['username'] = $sharedUser !== '' ? $sharedUser : $portalUser;
+        }
+        if ($cfg['password'] === '') {
+            $cfg['password'] = $sharedPass !== '' ? $sharedPass : $portalPass;
+        }
+
+        return $cfg;
     }
 
     /**

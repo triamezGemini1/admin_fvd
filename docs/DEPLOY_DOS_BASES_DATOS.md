@@ -1,102 +1,79 @@
-# Dos bases de datos en el mismo hosting (dominios distintos)
+# Dos bases de datos (portal + personas)
 
-Escenario típico FVD:
+| Uso | Dominio / servidor | Base de datos | Tabla |
+|-----|-------------------|---------------|--------|
+| Portal (login, panel) | `federacionvenezolanadedomino.com` | `federaci1_fvdmasteradmin1` | `usuarios`, … |
+| Personas (cédula) | `laestaciondeldominohoy.com` | `laestaci1_fvdadmin` | `dbo_persona` |
 
-| Uso | Dominio | Base de datos | Tabla principal |
-|-----|---------|---------------|-----------------|
-| Portal admin FVD (login, torneos, finanzas) | `federacionvenezolanadedomino.com` | `federaci1_fvdmasteradmin1` | `usuarios`, `movimiento_torneo`, … |
-| Personas / cédula (afiliación) | `laestaciondeldominohoy.com` | `laestaci1_fvdadmin` | `dbo_persona` |
-
-La aplicación vive en **un solo dominio** (`…/admin_fvd/`) pero puede leer **las dos BDs** según el `.env`.
+La app PHP vive en **un solo sitio** (`…/admin_fvd/`) pero abre cada BD según el `.env`.
 
 ---
 
-## Caso A — Misma cuenta cPanel (lo más habitual)
+## Caso habitual FVD: mismo usuario y misma contraseña, dos dominios
 
-Todas las BDs del mismo usuario de hosting se conectan con **`localhost`** desde PHP, aunque el “sitio web” de cada BD sea otro dominio.
+Si en **ambos** servidores MySQL el usuario y la clave son **idénticos** (solo cambian host y nombre de BD):
 
 ```env
-# BD principal (portal)
+# Credenciales compartidas (opcional; si omite FVD_PERSONA_DB_USERNAME/PASSWORD se reutilizan)
+FVD_MYSQL_USERNAME=federaci1_lacancion
+FVD_MYSQL_PASSWORD="Mimusica$26"
+
+# --- Portal (siempre localhost en el servidor del portal) ---
 FVD_DB_HOST=localhost
 FVD_DB_DATABASE=federaci1_fvdmasteradmin1
 FVD_DB_USERNAME=federaci1_lacancion
-FVD_DB_PASSWORD="su_clave_principal"
+FVD_DB_PASSWORD="Mimusica$26"
 
-# BD personas (NO repita FVD_DB_* aquí)
-FVD_PERSONA_DB_HOST=localhost
+# --- Personas (host = dominio donde está la otra BD) ---
+FVD_PERSONA_DB_HOST=laestaciondeldominohoy.com
 FVD_PERSONA_DB_DATABASE=laestaci1_fvdadmin
-FVD_PERSONA_DB_USERNAME=federaci1_soloyo
-FVD_PERSONA_DB_PASSWORD="su_clave_personas"
+# Sin FVD_PERSONA_DB_USERNAME ni FVD_PERSONA_DB_PASSWORD → usa las mismas que el portal
 FVD_PERSONA_DB_TABLE=dbo_persona
 ```
 
-En cPanel → **Bases de datos MySQL**:
+**No hace falta** repetir usuario distinto (`federaci1_soloyo`, `laestaci1_lacancion`, etc.) si en realidad es el mismo en los dos lados.
 
-1. Cada BD tiene su **usuario** (`federaci1_lacancion`, `federaci1_soloyo`).
-2. Cada usuario debe estar **asignado a su BD** con todos los privilegios.
-3. El usuario de la BD principal **no** accede a la BD personas salvo que lo agregue manualmente (no es necesario si usa `federaci1_soloyo` en `FVD_PERSONA_*`).
+### Requisito en el hosting del dominio personas
+
+En cPanel de **laestaciondeldominohoy.com**:
+
+1. **Remote MySQL®** → autorizar la IP del servidor de `federacionvenezolanadedomino.com`.
+2. El usuario MySQL debe existir en **esa** cuenta con acceso a `laestaci1_fvdadmin`.
+3. Misma contraseña que en el `.env` del portal.
+
+Si MySQL remoto no está permitido, copie `dbo_persona` a la misma cuenta cPanel del portal y use `FVD_PERSONA_DB_HOST=localhost` para ambas.
 
 ---
 
-## Caso B — Cuentas cPanel distintas o servidor distinto
+## Caso A — Misma cuenta cPanel (ambas BD en un solo servidor)
 
-La BD personas está en **otro servidor** o cuenta. Entonces:
+Ambas bases en la **misma** cuenta: host **`localhost`** para las dos. Un solo usuario MySQL debe estar **asignado a las dos bases** en cPanel.
 
 ```env
-FVD_PERSONA_DB_HOST=laestaciondeldominohoy.com
-# o la IP que indique el panel de laestaciondeldominohoy.com
+FVD_DB_HOST=localhost
+FVD_DB_DATABASE=federaci1_fvdmasteradmin1
+FVD_DB_USERNAME=federaci1_lacancion
+FVD_DB_PASSWORD="su_clave"
+
+FVD_PERSONA_DB_HOST=localhost
+FVD_PERSONA_DB_DATABASE=laestaci1_fvdadmin
+FVD_PERSONA_DB_TABLE=dbo_persona
 ```
 
-En el cPanel de **laestaciondeldominohoy.com**:
-
-1. **MySQL remoto** → permitir el host/IP del servidor de `federacionvenezolanadedomino.com`.
-2. Usuario `federaci1_soloyo` con acceso remoto a `laestaci1_fvdadmin`.
-
-Si el hosting no permite MySQL remoto, opciones:
-
-- Mover/copiar `dbo_persona` a la misma cuenta que el portal, o
-- Exponer un API en laestaciondeldominohoy.com (no implementado por defecto en este proyecto).
+(Omita `FVD_PERSONA_DB_USERNAME` / `FVD_PERSONA_DB_PASSWORD` para reutilizar las del portal.)
 
 ---
 
-## Comprobar ambas conexiones
-
-Abra (con sesión de admin o tras subir `health.php`):
+## Comprobar conexiones
 
 ```
-https://federacionvenezolanadedomino.com/admin_fvd/api/health.php
+https://federacionvenezolanadedomino.com/admin_fvd/api/health.php?key=SU_CLAVE
 ```
 
-Respuesta esperada:
+- Portal: `database_primary.status` → `connected`
+- Personas (solo al afiliar o con flag): `?probe_persona=1` → `connected`
 
-```json
-"database_primary": { "status": "connected", ... },
-"database_persona": { "status": "connected", "table_probe": { "ok": true } }
-```
-
-Si `database_persona` falla pero `database_primary` conecta:
-
-- Revise prefijos `FVD_PERSONA_DB_*` (no `FVD_DB_*`).
-- Revise usuario/contraseña de la BD personas en cPanel.
-- Pruebe `FVD_PERSONA_DB_HOST=localhost` vs host remoto según caso A o B.
-
-Con diagnóstico detallado en `.env`:
-
-```
-FVD_APP_DEBUG=1
-```
-
----
-
-## Desactivar BD personas temporalmente
-
-Si solo necesita probar login/panel:
-
-```env
-FVD_PERSONA_DB_DISABLED=1
-```
-
-La afiliación por cédula externa quedará desactivada hasta configurar la segunda BD.
+Con `FVD_APP_DEBUG=1` verá el error MySQL exacto si falla.
 
 ---
 
@@ -104,7 +81,15 @@ La afiliación por cédula externa quedará desactivada hasta configurar la segu
 
 | Error | Causa |
 |-------|--------|
-| Login «Servicio no disponible» | Falla **BD principal** (`FVD_DB_*`) |
-| Afiliación sin datos externos | Falla **BD personas** (`FVD_PERSONA_*`) |
-| `Access denied` | Usuario MySQL no asignado a esa BD |
-| Sobrescribir `FVD_DB_*` al final del `.env` | Segunda BD mal etiquetada; use solo `FVD_PERSONA_DB_*` |
+| `Access denied` portal | Clave incorrecta en `.env` o usuario no asignado a `federaci1_fvdmasteradmin1` |
+| `Access denied` personas con usuario del portal | Normal si el host es remoto: active **MySQL remoto** en el otro dominio |
+| Usuario `laestaci1_*` en logs | Mezcla de prefijos en `.env`; use el **mismo** usuario real en ambos bloques |
+| Login 503 | Arregle primero **solo** `FVD_DB_*` (portal) |
+
+---
+
+## Desactivar BD personas temporalmente
+
+```env
+FVD_PERSONA_DB_DISABLED=1
+```
