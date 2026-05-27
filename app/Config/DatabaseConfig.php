@@ -93,6 +93,7 @@ final class DatabaseConfig
             self::$personasCache['socket'] = trim(Env::get('FVD_PERSONA_DB_SOCKET', '') ?? '');
             self::$personasCache['table'] = trim(Env::get('FVD_PERSONA_DB_TABLE', 'dbo_persona') ?? 'dbo_persona');
             self::$personasCache = self::applySharedCredentials(self::$personasCache);
+            self::$personasCache = self::inheritPortalCredentialsIfMissing(self::$personasCache);
 
             return self::$personasCache;
         }
@@ -114,6 +115,7 @@ final class DatabaseConfig
             'source' => 'legacy',
         ];
         self::$personasCache = self::applySharedCredentials(self::$personasCache);
+        self::$personasCache = self::inheritPortalCredentialsIfMissing(self::$personasCache);
 
         return self::$personasCache;
     }
@@ -174,6 +176,7 @@ final class DatabaseConfig
             'username' => $cfg['username'],
             'table' => $cfg['table'],
             'password_set' => $cfg['password'] !== '',
+            'credentials_inherited' => ($cfg['credentials_inherited'] ?? '0') === '1',
             'config_source' => $cfg['source'],
         ];
     }
@@ -261,6 +264,35 @@ final class DatabaseConfig
         }
         if ($cfg['password'] === '') {
             $cfg['password'] = $sharedPass !== '' ? $sharedPass : $portalPass;
+        }
+
+        return $cfg;
+    }
+
+    /**
+     * Copia usuario/clave ya resueltos del portal (mismo usuario en dos dominios).
+     *
+     * @param array<string, string> $cfg
+     * @return array<string, string>
+     */
+    private static function inheritPortalCredentialsIfMissing(array $cfg): array
+    {
+        $usePortal = Env::get('FVD_PERSONA_USE_PORTAL_CREDENTIALS', '1') === '1';
+        $needsUser = trim($cfg['username'] ?? '') === '';
+        $needsPass = ($cfg['password'] ?? '') === '';
+
+        if (!$usePortal || (!$needsUser && !$needsPass)) {
+            return $cfg;
+        }
+
+        $portal = self::portal();
+        if ($needsUser && trim($portal['username']) !== '') {
+            $cfg['username'] = $portal['username'];
+            $cfg['credentials_inherited'] = '1';
+        }
+        if ($needsPass && $portal['password'] !== '') {
+            $cfg['password'] = $portal['password'];
+            $cfg['credentials_inherited'] = '1';
         }
 
         return $cfg;
