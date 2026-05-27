@@ -1,0 +1,53 @@
+# Portal FVD — despliegue en subcarpeta (ej. public_html/admin_fvd)
+# Ajuste RewriteBase si la ruta pública no es /admin_fvd/
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /admin_fvd/
+
+    # Forzar HTTPS (descomente en producción con certificado SSL activo)
+    # RewriteCond %{HTTPS} off
+    # RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+# Bloquear archivos sensibles
+<Files ".env">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
+</Files>
+
+<FilesMatch "^\.">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+</FilesMatch>
+
+# No servir por HTTP carpetas de código y datos
+<IfModule mod_rewrite.c>
+    RewriteRule ^(?:app|sql|scripts|tools|datosinfo|vendor|node_modules)(?:/|$) - [F,L]
+</IfModule>
+
+<IfModule mod_php.c>
+    php_flag display_errors Off
+    php_flag log_errors On
+</IfModule>
+
+<IfModule mod_php8.c>
+    php_flag display_errors Off
+    php_flag log_errors On
+</IfModule>
+
+# Subidas (afiliación, logos, torneos)
+<IfModule mod_headers.c>
+    <FilesMatch "\.(jpg|jpeg|png|gif|webp|ico|pdf)$">
+        Header set Cache-Control "public, max-age=604800"
+    </FilesMatch>
+</IfModule>
+
+Options -Indexes

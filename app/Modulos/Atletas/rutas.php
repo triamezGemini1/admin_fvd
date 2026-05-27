@@ -17,10 +17,17 @@ return [
     ],
     [
         'modulo' => 'Atletas',
+        'path' => 'api/atleta/registrar.php',
+        'methods' => 'POST',
+        'handler' => __DIR__ . DIRECTORY_SEPARATOR . 'Controladores' . DIRECTORY_SEPARATOR . 'registrar_afiliacion.php',
+        'descripcion' => 'Alta o actualización de afiliación (endpoint canónico)',
+    ],
+    [
+        'modulo' => 'Atletas',
         'path' => 'api/save_afiliacion.php',
         'methods' => 'POST',
         'handler' => __DIR__ . DIRECTORY_SEPARATOR . 'Controladores' . DIRECTORY_SEPARATOR . 'save_afiliacion.php',
-        'descripcion' => 'Alta o actualización de afiliación (usuarios + movimiento)',
+        'descripcion' => 'Wrapper legacy → registrar afiliación',
     ],
     [
         'modulo' => 'Atletas',

@@ -1,5 +1,5 @@
 /**
- * Afiliación atleta: check cédula, categoría por edad, previews, FormData → save_afiliacion.php.
+ * Afiliación atleta: check cédula, categoría por edad, previews, FormData → api/atleta/registrar.php.
  * Acceso según `modo` en URL: alta/nuevo (crear), editar (crear o escribir), ver (crear o panel con lectura de usuarios).
  */
 
@@ -7,7 +7,15 @@ import { mountPortalPerfilHeader } from './portal_perfil_header.js';
 import { initDelegadoTorneosBar, persistJornadaDesdeAuth } from './delegado_torneos_bar.js';
 
 const API_CHECK = 'api/check_user.php';
-const API_SAVE = 'api/save_afiliacion.php';
+const API_REGISTRAR = 'api/atleta/registrar.php';
+
+/** Mensajes amigables para códigos de error del backend (503, etc.). */
+const MSJ_ERROR_CODIGO = {
+    PORTAL_UNAVAILABLE:
+        'El servicio del portal no está disponible. Intente en unos minutos o contacte al administrador.',
+    PERSONAS_UNAVAILABLE:
+        'La consulta de identidad externa no está temporalmente disponible. Complete los datos manualmente o intente más tarde.',
+};
 
 /**
  * Rangos de categoría por edad (año cumplido a fecha de hoy). Ajustar según reglamento FVD.
@@ -356,6 +364,38 @@ function showMsg(text, ok) {
     msg.textContent = text;
     msg.style.display = 'block';
     msg.className = 'form-msg torneo-alta-msg ' + (ok ? 'ok' : 'err');
+    msg.setAttribute('role', ok ? 'status' : 'alert');
+    msg.setAttribute('aria-live', ok ? 'polite' : 'assertive');
+}
+
+/**
+ * Traduce respuestas de error del endpoint de registro a mensajes legibles para el usuario.
+ *
+ * @param {Response} res
+ * @param {{ ok?: boolean, message?: string, code?: string }} data
+ */
+function resolverMensajeErrorRegistro(res, data) {
+    const backendMsg = typeof data.message === 'string' ? data.message.trim() : '';
+    if (backendMsg) {
+        return backendMsg;
+    }
+    if (data.code && MSJ_ERROR_CODIGO[data.code]) {
+        return MSJ_ERROR_CODIGO[data.code];
+    }
+    switch (res.status) {
+        case 400:
+            return 'Revise los datos del formulario; hay campos incorrectos o incompletos.';
+        case 401:
+            return 'Su sesión expiró. Vuelva a iniciar sesión.';
+        case 403:
+            return 'No tiene permiso para registrar esta afiliación.';
+        case 405:
+            return 'Operación no permitida.';
+        case 503:
+            return 'Servicio temporalmente no disponible. Intente más tarde.';
+        default:
+            return 'No se pudo guardar el registro. Intente nuevamente.';
+    }
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -409,8 +449,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
         }
+        const submitBtn = document.getElementById('btn-afiliar-submit');
+        if (submitBtn) submitBtn.disabled = true;
         try {
-            const res = await fetch(API_SAVE, {
+            const res = await fetch(API_REGISTRAR, {
                 method: 'POST',
                 body: fd,
                 credentials: 'same-origin',
@@ -420,11 +462,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showMsg(data.message || 'Guardado correctamente.', true);
                 limpiarFormulario();
             } else {
-                showMsg(data.message || 'No se pudo guardar.', false);
+                showMsg(resolverMensajeErrorRegistro(res, data), false);
             }
         } catch (e) {
             console.error(e);
-            showMsg('Error de conexión.', false);
+            showMsg('No se pudo conectar con el servidor. Verifique su conexión e intente de nuevo.', false);
+        } finally {
+            if (submitBtn) submitBtn.disabled = false;
         }
     });
 

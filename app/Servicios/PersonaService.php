@@ -4,21 +4,18 @@ declare(strict_types=1);
 
 namespace Fvd\Servicios;
 
-use Fvd\Config\Env;
+use Fvd\Config\DatabaseConfig;
+use Fvd\Database\ConnectionException;
+use Fvd\Database\ConnectionManager;
 use PDO;
 use PDOException;
 
 /**
  * Consulta de personas en BD externa (tabla dbo_persona / equivalentes).
- * Credenciales: variables FVD_PERSONA_DB_* en .env
+ * La conexión remota se abre bajo demanda vía ConnectionManager::getPersonasConnection().
  */
 final class PersonaService
 {
-    private const CONNECTION_TIMEOUT = 3;
-
-    /** @var array<string, PDO> */
-    private static array $pool = [];
-
     private static bool $dbUnavailable = false;
 
     private static ?int $dbUnavailableTime = null;
@@ -107,8 +104,6 @@ final class PersonaService
     }
 
     /**
-     * Acepta cédula con o sin prefijo V/E/J/P; nacionalidad opcional.
-     *
      * @return array{
      *   encontrado: bool,
      *   fuente?: string,
@@ -136,52 +131,7 @@ final class PersonaService
 
     public static function isConfigured(): bool
     {
-        if (self::env('FVD_PERSONA_DB_DISABLED', '0') === '1') {
-            return false;
-        }
-
-        return self::env('FVD_PERSONA_DB_DATABASE') !== '';
-    }
-
-    private static function env(string $key, string $default = ''): string
-    {
-        if ($key === 'FVD_PERSONA_DB_DISABLED') {
-            $v = Env::get($key);
-
-            return $v !== null && $v !== '' ? $v : $default;
-        }
-
-        $v = Env::get($key);
-        if ($v !== null && $v !== '') {
-            return $v;
-        }
-
-        $aliases = [
-            'FVD_PERSONA_DB_HOST' => 'DB_SECONDARY_HOST',
-            'FVD_PERSONA_DB_PORT' => 'DB_SECONDARY_PORT',
-            'FVD_PERSONA_DB_DATABASE' => 'DB_SECONDARY_DATABASE',
-            'FVD_PERSONA_DB_USERNAME' => 'DB_SECONDARY_USERNAME',
-            'FVD_PERSONA_DB_PASSWORD' => 'DB_SECONDARY_PASSWORD',
-            'FVD_PERSONA_DB_TABLE' => 'DB_SECONDARY_TABLE',
-        ];
-        if (isset($aliases[$key])) {
-            $alt = Env::get($aliases[$key]);
-            if ($alt !== null && $alt !== '') {
-                return $alt;
-            }
-        }
-
-        /** Valores WAMP/local si no existe .env (misma convención que mistorneos dev). */
-        $devDefaults = [
-            'FVD_PERSONA_DB_HOST' => '127.0.0.1',
-            'FVD_PERSONA_DB_PORT' => '3306',
-            'FVD_PERSONA_DB_DATABASE' => 'personas',
-            'FVD_PERSONA_DB_USERNAME' => 'root',
-            'FVD_PERSONA_DB_PASSWORD' => '',
-            'FVD_PERSONA_DB_TABLE' => 'dbo_persona',
-        ];
-
-        return $devDefaults[$key] ?? $default;
+        return ConnectionManager::isPersonasConfigured();
     }
 
     private static function isTemporarilyUnavailable(): bool
@@ -210,7 +160,7 @@ final class PersonaService
      */
     private static function tableCandidates(): array
     {
-        $primary = self::env('FVD_PERSONA_DB_TABLE', 'dbo_persona');
+        $primary = DatabaseConfig::personas()['table'];
         $list = [$primary, 'dbo_persona', 'persona'];
 
         return array_values(array_unique(array_filter($list)));
@@ -218,58 +168,27 @@ final class PersonaService
 
     private static function getConnection(): ?PDO
     {
-        $host = self::env('FVD_PERSONA_DB_HOST', '127.0.0.1');
-        $port = self::env('FVD_PERSONA_DB_PORT', '3306');
-        $name = self::env('FVD_PERSONA_DB_DATABASE');
-        $user = self::env('FVD_PERSONA_DB_USERNAME', 'root');
-        $pass = self::env('FVD_PERSONA_DB_PASSWORD', '');
-
-        if (trim($name) === '') {
+        if (!self::isConfigured()) {
             return null;
         }
 
-        $key = $host . ':' . $port . ':' . $name;
-        if (isset(self::$pool[$key])) {
-            try {
-                self::$pool[$key]->query('SELECT 1');
-
-                return self::$pool[$key];
-            } catch (PDOException $e) {
-                unset(self::$pool[$key]);
-            }
-        }
-
-        $prevTimeout = ini_get('default_socket_timeout');
-        ini_set('default_socket_timeout', (string) self::CONNECTION_TIMEOUT);
-
         try {
-            $dsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4', $host, $port, $name);
-            $options = [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            ];
-            if (defined('PDO::MYSQL_ATTR_CONNECT_TIMEOUT')) {
-                $options[PDO::MYSQL_ATTR_CONNECT_TIMEOUT] = self::CONNECTION_TIMEOUT;
-            }
-            $pdo = new PDO($dsn, $user, $pass, $options);
-            self::$pool[$key] = $pdo;
-
-            return $pdo;
-        } catch (PDOException $e) {
-            error_log('PersonaService conexión: ' . $e->getMessage());
-            if (self::strHas($e->getMessage(), 'Unknown database') || self::strHas($e->getMessage(), 'Access denied')) {
+            return ConnectionManager::getPersonasConnection();
+        } catch (ConnectionException $e) {
+            $err = ConnectionManager::lastPersonasError() ?? $e->getMessage();
+            if (
+                self::strHas($err, 'Unknown database')
+                || self::strHas($err, 'Access denied')
+                || self::strHas($err, 'Connection refused')
+                || self::strHas($err, 'timed out')
+            ) {
                 self::markUnavailable();
             }
 
             return null;
-        } finally {
-            ini_set('default_socket_timeout', (string) $prevTimeout);
         }
     }
 
-    /**
-     * @return array<string, mixed>|null
-     */
     private static function qualifyTableSql(string $table): string
     {
         $clean = str_replace('`', '', $table);

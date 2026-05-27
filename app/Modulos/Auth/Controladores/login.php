@@ -13,7 +13,10 @@ $db = $database->getConnection();
 
 if ($db === null) {
     http_response_code(503);
-    echo json_encode(['status' => 'error', 'message' => 'Servicio no disponible']);
+    echo json_encode([
+        'status' => 'error',
+        'message' => \Fvd\Config\DatabaseFactory::publicUnavailableMessage(),
+    ]);
     exit;
 }
 

@@ -117,7 +117,7 @@ class AdminUsuario
         if (Auth::rol() === 'delegado') {
             $numfvd = 0;
         }
-        $status = isset($data['status']) ? (int) $data['status'] : Auth::STATUS_ACCESO_PORTAL;
+        $status = isset($data['status']) ? (int) $data['status'] : Auth::STATUS_PENDIENTE_APROBACION;
         $hash = password_hash($plain, PASSWORD_DEFAULT);
         if ($hash === false) {
             throw new RuntimeException('No se pudo generar el hash de contraseña.');

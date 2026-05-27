@@ -28,8 +28,8 @@ foreach (['admin@fvd.local', 'admin_fvd_general', 'ADMIN-FVD-001'] as $login) {
     foreach ($rows as $r) {
         echo json_encode($r, JSON_UNESCAPED_UNICODE) . "\n";
         $st = (int) $r['status'];
-        if ($st !== 9) {
-            echo ">>> PROBLEMA: status={$st} pero Auth::STATUS_ACCESO_PORTAL exige status=9.\n";
+        if (!in_array($st, [1, 9], true)) {
+            echo ">>> PROBLEMA: status={$st}; el login exige status 1 o 9.\n";
         }
         $role = strtolower((string) $r['role']);
         if ($role !== 'admingral') {

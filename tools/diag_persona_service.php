@@ -7,10 +7,10 @@ declare(strict_types=1);
  * Uso: php tools/diag_persona_service.php [cedula] [nacionalidad]
  */
 define('FVD_ROOT', dirname(__DIR__));
-require FVD_ROOT . '/app/Config/Env.php';
-\Fvd\Config\Env::load();
 require FVD_ROOT . '/app/Autoload.php';
 \Fvd\Autoload::register();
+require FVD_ROOT . '/app/Config/Env.php';
+\Fvd\Config\Env::load();
 
 $cedula = $argv[1] ?? '12345678';
 $nac = $argv[2] ?? 'V';

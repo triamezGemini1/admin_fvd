@@ -19,8 +19,17 @@ class Auth
 
     private const TABLE_OTP = 'auth_celular_login_otp';
 
-    /** Valor de `usuarios.status` que permite acceso al portal */
-    public const STATUS_ACCESO_PORTAL = 9;
+    /** Estatus pendiente de aprobación (panel admin). */
+    public const STATUS_PENDIENTE_APROBACION = 9;
+
+    /** Estatus activo tras aprobación de administración general. */
+    public const STATUS_ACTIVO_APROBADO = 1;
+
+    /**
+     * Valores de `usuarios.status` que permiten iniciar sesión.
+     * Alineado con inscripciones y demás módulos (`status IN (1, 9)`).
+     */
+    public const STATUS_ACCESO_PORTAL = [1, 9];
 
     private const OTP_MAX_INTENTOS = 5;
 
@@ -188,15 +197,12 @@ class Auth
                 FROM ' . self::TABLE_USUARIOS . '
                 WHERE (username = :login OR email = :login OR cedula = :login)';
         if ($soloSiPuedeIniciarSesion) {
-            $sql .= ' AND status = :st';
+            $sql .= ' AND status IN (' . implode(',', array_map('intval', self::STATUS_ACCESO_PORTAL)) . ')';
         }
         $sql .= ' LIMIT 1';
 
         $stmt = $this->conn->prepare($sql);
         $stmt->bindValue(':login', $identifier, \PDO::PARAM_STR);
-        if ($soloSiPuedeIniciarSesion) {
-            $stmt->bindValue(':st', self::STATUS_ACCESO_PORTAL, \PDO::PARAM_INT);
-        }
         $stmt->execute();
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
         return $row === false ? null : $row;

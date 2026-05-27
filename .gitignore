@@ -36,3 +36,4 @@ dist/assets/img/uploads/*
 *.bak
 *.tmp
 backup/
+deploy-fvd-admin.zip

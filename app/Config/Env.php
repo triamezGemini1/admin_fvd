@@ -14,6 +14,18 @@ final class Env
     /** @var array<string, string> */
     private static array $variables = [];
 
+    /** @var list<string> */
+    private static array $warnings = [];
+
+    public static function envPath(): string
+    {
+        if (!defined('FVD_ROOT')) {
+            return '';
+        }
+
+        return FVD_ROOT . DIRECTORY_SEPARATOR . '.env';
+    }
+
     public static function load(?string $path = null): void
     {
         if (self::$loaded) {
@@ -26,14 +38,23 @@ final class Env
             return;
         }
 
-        $path = $path ?? (FVD_ROOT . DIRECTORY_SEPARATOR . '.env');
+        $path = $path ?? self::envPath();
         if (!is_file($path)) {
             self::$loaded = true;
 
             return;
         }
 
-        $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        $raw = file_get_contents($path);
+        if ($raw === false) {
+            self::$loaded = true;
+
+            return;
+        }
+        if (strncmp($raw, "\xEF\xBB\xBF", 3) === 0) {
+            $raw = substr($raw, 3);
+        }
+        $lines = preg_split('/\r\n|\r|\n/', $raw) ?: [];
         if ($lines === false) {
             self::$loaded = true;
 
@@ -45,6 +66,9 @@ final class Env
             if ($line === '' || strpos($line, '#') === 0) {
                 continue;
             }
+            if (str_starts_with($line, 'export ')) {
+                $line = trim(substr($line, 7));
+            }
             if (strpos($line, '=') === false) {
                 continue;
             }
@@ -54,12 +78,29 @@ final class Env
                 continue;
             }
             $value = self::parseValue(trim($value));
+            if (isset(self::$variables[$key]) && str_starts_with($key, 'FVD_')) {
+                self::$warnings[] = "La variable {$key} está definida más de una vez; se usa el último valor (revise que no mezcle FVD_DB_* con FVD_PERSONA_DB_*).";
+            }
             self::$variables[$key] = $value;
             $_ENV[$key] = $value;
-            putenv($key . '=' . $value);
         }
 
         self::$loaded = true;
+        self::initApp();
+    }
+
+    private static function initApp(): void
+    {
+        if (!class_exists(App::class, false)) {
+            require_once __DIR__ . DIRECTORY_SEPARATOR . 'App.php';
+        }
+        App::init();
+    }
+
+    /** @return list<string> */
+    public static function warnings(): array
+    {
+        return self::$warnings;
     }
 
     public static function get(string $key, ?string $default = null): ?string
@@ -84,7 +125,12 @@ final class Env
             (strlen($value) >= 2 && $value[0] === '"' && substr($value, -1) === '"')
             || (strlen($value) >= 2 && $value[0] === "'" && substr($value, -1) === "'")
         ) {
-            return substr($value, 1, -1);
+            $value = substr($value, 1, -1);
+        } else {
+            $hash = strpos($value, '#');
+            if ($hash !== false) {
+                $value = trim(substr($value, 0, $hash));
+            }
         }
 
         return $value;
