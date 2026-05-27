@@ -89,12 +89,25 @@ final class Env
         self::initApp();
     }
 
+    public static function isProduction(): bool
+    {
+        $env = strtolower(trim(self::get('FVD_APP_ENV', 'development') ?? 'development'));
+
+        return $env === 'production' || $env === 'prod';
+    }
+
     private static function initApp(): void
     {
-        if (!class_exists(App::class, false)) {
-            require_once __DIR__ . DIRECTORY_SEPARATOR . 'App.php';
+        $appFile = __DIR__ . DIRECTORY_SEPARATOR . 'App.php';
+        if (!is_file($appFile)) {
+            error_log('FVD: no se encontró app/Config/App.php. Suba ese archivo al servidor (git pull o FTP).');
+
+            return;
         }
-        App::init();
+        require_once $appFile;
+        if (class_exists(App::class)) {
+            App::init();
+        }
     }
 
     /** @return list<string> */

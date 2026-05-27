@@ -10,6 +10,7 @@ if (!defined('FVD_ROOT')) {
 require_once __DIR__ . '/app/Autoload.php';
 \Fvd\Autoload::register();
 require_once __DIR__ . '/app/Config/Env.php';
+require_once __DIR__ . '/app/Config/App.php';
 \Fvd\Config\Env::load();
 
 class Database

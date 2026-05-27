@@ -37,7 +37,7 @@ final class ConnectionManager
 
         self::$portalLastError = null;
 
-        if (!self::envFileExists()) {
+        if (!self::envFileExists() && Env::isProduction()) {
             self::$portalLastError = 'Archivo .env no encontrado en ' . Env::envPath();
             throw new ConnectionException(self::$portalLastError, 'portal');
         }

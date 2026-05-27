@@ -63,6 +63,11 @@ final class DatabaseFactory
             return 'Configuración incompleta: falta el archivo .env en el servidor. Copie .env.production.example a .env y configure la base de datos.';
         }
 
+        if (DatabaseConfig::hasPlaceholderPortalCredentials()) {
+            return 'El .env aún tiene valores de plantilla (su_prefijo_fvdmasteradmin / su_usuario_mysql). '
+                . 'Sustitúyalos por las credenciales reales de cPanel → MySQL.';
+        }
+
         if (Env::get('FVD_APP_DEBUG', '0') === '1' && self::lastError() !== null) {
             return 'Base de datos: ' . self::lastError();
         }
